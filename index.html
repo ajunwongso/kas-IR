@@ -228,7 +228,7 @@
         }
 
         function cekPIN() {
-            if(document.getElementById('input-pin').value === "123456") {
+            if(document.getElementById('input-pin').value === "031391") {
                 isBendahara = true;
                 document.getElementById('modal-pin').classList.add('hidden');
                 document.getElementById('area-transaksi').classList.remove('hidden');
@@ -245,6 +245,9 @@
         function bukaModalForm(id) { document.getElementById(id).classList.remove('hidden'); }
         function tutupModalForm(id) { document.getElementById(id).classList.add('hidden'); }
 
+        // ==========================================
+        // FUNGSI DASHBOARD (Sudah Diperbaiki undefined)
+        // ==========================================
         async function muatDashboard() {
             document.getElementById('loading-dashboard').classList.remove('hidden'); document.getElementById('konten-dashboard').classList.add('hidden');
             try {
@@ -258,9 +261,23 @@
                     document.getElementById('ui-persentase').innerText = `(${resDash.data.persentase}%)`;
                     document.getElementById('ui-progress-bar').style.width = resDash.data.persentase + "%";
                 }
+                
                 let semuaTrx = [];
-                if(resSetoran.status === 'success' && resSetoran.data) { resSetoran.data.forEach(s => semuaTrx.push({ tgl: s.Tanggal, sort: new Date(s.Tanggal).getTime(), tipe: 'setoran', txt: `Setoran: ${s['Nama Anggota']}`, jml: Number(s.Jumlah || 0) })); }
-                if(resPengeluaran.status === 'success' && resPengeluaran.data) { resPengeluaran.data.forEach(p => semuaTrx.push({ tgl: p.Tanggal, sort: new Date(p.Tanggal).getTime(), tipe: 'pengeluaran', txt: `Keluar: ${p.Keperluan}`, jml: Number(p.Jumlah || 0) })); }
+                if(resSetoran.status === 'success' && resSetoran.data) { 
+                    resSetoran.data.forEach(s => {
+                        // PENCARI NAMA OTOMATIS ANTI-UNDEFINED
+                        let namaOrang = s["Nama Anggota"] || s["Nama"] || s["nama"] || s["Anggota"];
+                        if(!namaOrang) { const kunci = Object.keys(s).find(k => k.toLowerCase().includes('nama')); namaOrang = kunci ? s[kunci] : "Tanpa Nama"; }
+                        semuaTrx.push({ tgl: s.Tanggal, sort: new Date(s.Tanggal).getTime(), tipe: 'setoran', txt: `Setoran: ${namaOrang}`, jml: Number(s.Jumlah || 0) });
+                    }); 
+                }
+                if(resPengeluaran.status === 'success' && resPengeluaran.data) { 
+                    resPengeluaran.data.forEach(p => {
+                        let untukApa = p["Keperluan"] || p["Keterangan"] || p["Detail"] || "Lain-lain";
+                        semuaTrx.push({ tgl: p.Tanggal, sort: new Date(p.Tanggal).getTime(), tipe: 'pengeluaran', txt: `Keluar: ${untukApa}`, jml: Number(p.Jumlah || 0) });
+                    }); 
+                }
+                
                 semuaTrx.sort((a, b) => b.sort - a.sort); 
                 const top5 = semuaTrx.slice(0, 5); let htmlRiwayat = '';
                 top5.forEach(t => {
@@ -271,7 +288,7 @@
                 document.getElementById('dashboard-riwayat').innerHTML = htmlRiwayat === '' ? '<p class="text-center text-[10px] text-slate-400 py-2">Belum ada transaksi.</p>' : htmlRiwayat;
             } catch (err) {} finally { document.getElementById('loading-dashboard').classList.add('hidden'); document.getElementById('konten-dashboard').classList.remove('hidden'); }
         }
-
+		
         async function muatAnggota() {
             const listAnggota = document.getElementById('list-anggota'), selectAnggota = document.getElementById('form-nama-masuk'), editAnggota = document.getElementById('edit-nama-setoran');
             document.getElementById('loading-anggota').classList.remove('hidden'); listAnggota.innerHTML = ""; 
@@ -317,6 +334,9 @@
             } catch (err) {}
         }
 
+       // ==========================================
+        // FUNGSI LAPORAN (Sudah Diperbaiki undefined)
+        // ==========================================
         async function tarikLaporan() {
             const bln = document.getElementById('filter-bln').value, thn = document.getElementById('filter-thn').value;
             document.getElementById('btn-tarik-laporan').innerText = "Mencari...";
@@ -328,7 +348,12 @@
                     resSetoran.data.forEach(s => {
                         if((bln === "Semua" || String(s.Bulan).toLowerCase() === bln.toLowerCase()) && (thn === "Semua" || String(s.Tahun) === String(thn))) {
                             totalMasuk += Number(s.Jumlah || 0);
-                            historyDataGlobal.push({ raw: s, tgl: s.Tanggal, sort: new Date(s.Tanggal).getTime(), tipe: 'setoran', txt: `Masuk: ${s['Nama Anggota']}`, jml: Number(s.Jumlah || 0) });
+                            
+                            // PENCARI NAMA OTOMATIS ANTI-UNDEFINED
+                            let namaOrang = s["Nama Anggota"] || s["Nama"] || s["nama"] || s["Anggota"];
+                            if(!namaOrang) { const kunci = Object.keys(s).find(k => k.toLowerCase().includes('nama')); namaOrang = kunci ? s[kunci] : "Tanpa Nama"; }
+                            
+                            historyDataGlobal.push({ raw: s, tgl: s.Tanggal, sort: new Date(s.Tanggal).getTime(), tipe: 'setoran', txt: `Setoran: ${namaOrang}`, jml: Number(s.Jumlah || 0) });
                         }
                     });
                 }
@@ -338,10 +363,13 @@
                         const arr = String(p.Tanggal).split("-");
                         if(arr.length >= 2 && (thn === "Semua" || arr[0] === String(thn)) && (bln === "Semua" || arr[1] === mapBln[bln.toLowerCase()])) {
                             totalKeluar += Number(p.Jumlah || 0);
-                            historyDataGlobal.push({ raw: p, tgl: p.Tanggal, sort: new Date(p.Tanggal).getTime(), tipe: 'pengeluaran', txt: `Keluar: ${p.Keperluan}`, jml: Number(p.Jumlah || 0) });
+                            
+                            let untukApa = p["Keperluan"] || p["Keterangan"] || p["Detail"] || "Lain-lain";
+                            historyDataGlobal.push({ raw: p, tgl: p.Tanggal, sort: new Date(p.Tanggal).getTime(), tipe: 'pengeluaran', txt: `Keluar: ${untukApa}`, jml: Number(p.Jumlah || 0) });
                         }
                     });
                 }
+                
                 historyDataGlobal.sort((a, b) => b.sort - a.sort); 
                 let listHTML = '';
                 historyDataGlobal.forEach((t, i) => {
