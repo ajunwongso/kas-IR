@@ -196,7 +196,7 @@
 
   <!-- LOGIKA JS & API -->
     <script>
-       const API_URL = "https://script.google.com/macros/s/AKfycbwaN6QTyAYgjjRlPaN8ZVPQ8v1_gkpCF3UF4A8U1hxC_vnS5_AQFcC3uxrYlJX6OoG3Gw/exec";
+      const API_URL = "https://script.google.com/macros/s/AKfycbwaN6QTyAYgjjRlPaN8ZVPQ8v1_gkpCF3UF4A8U1hxC_vnS5_AQFcC3uxrYlJX6OoG3Gw/exec";
 let isBendahara = false; 
 let historyDataGlobal = []; 
 
@@ -229,7 +229,6 @@ function pindahHalaman(halaman) {
     document.getElementById('halaman-' + halaman).classList.remove('hidden');
     document.getElementById('nav-' + halaman).classList.replace('text-slate-400', 'text-[#2563eb]');
 
-    // PERBAIKAN BUG JUDUL: Gunakan innerHTML untuk breakline (<br>) dan reset teks-header sementara
     if(halaman === 'dashboard') { 
         document.getElementById('judul-halaman').innerHTML = "KAS Sertifikasi<br><span class='text-sm font-normal'>SMP IT Insan Robbani</span>"; 
         document.getElementById('teks-header').innerText = "Memuat periode..."; 
@@ -249,14 +248,14 @@ function bukaModalForm(id) { document.getElementById(id).classList.remove('hidde
 function tutupModalForm(id) { document.getElementById(id).classList.add('hidden'); }
 
 // ==========================================
-// FUNGSI DASHBOARD
+// FUNGSI DASHBOARD & ANGGOTA
 // ==========================================
 async function muatDashboard() {
     document.getElementById('loading-dashboard').classList.remove('hidden'); document.getElementById('konten-dashboard').classList.add('hidden');
     try {
         const [resDash, resSetoran, resPengeluaran] = await Promise.all([ fetch(API_URL + "?action=getDashboard").then(r => r.json()), fetch(API_URL + "?action=getSetoran").then(r => r.json()), fetch(API_URL + "?action=getPengeluaran").then(r => r.json()) ]);
         if(resDash.status === "success") {
-            document.getElementById('teks-header').innerText = "Periode: " + resDash.data.periode; // Akan berubah otomatis setelah loading selesai
+            document.getElementById('teks-header').innerText = "Periode: " + resDash.data.periode;
             document.getElementById('ui-saldo').innerText = formatRupiah(resDash.data.saldoAkhir);
             document.getElementById('ui-pemasukan').innerText = formatRupiah(resDash.data.pemasukanBulanIni);
             document.getElementById('ui-pengeluaran').innerText = formatRupiah(resDash.data.pengeluaranBulanIni);
@@ -285,7 +284,6 @@ async function muatDashboard() {
         top5.forEach(t => {
             const warnaTxt = t.tipe === 'setoran' ? 'text-[#16a34a]' : 'text-[#dc2626]';
             const tanda = t.tipe === 'setoran' ? '+' : '-';
-            // PERBAIKAN TANGGAL: Menggunakan helper formatTanggal
             htmlRiwayat += `<div class="flex justify-between items-center border-b border-gray-50 py-2.5"><div><p class="text-[10px] font-bold text-slate-800">${formatTanggal(t.tgl)}</p><p class="text-[10px] text-slate-500">${t.txt}</p></div><p class="text-xs font-black ${warnaTxt}">${tanda} ${formatRupiah(t.jml)}</p></div>`;
         });
         document.getElementById('dashboard-riwayat').innerHTML = htmlRiwayat === '' ? '<p class="text-center text-[10px] text-slate-400 py-2">Belum ada transaksi.</p>' : htmlRiwayat;
@@ -329,8 +327,7 @@ async function simpanAnggota() {
     if (!id || !nama || !iuran) return alert("Harap lengkapi form data anggota!");
 
     const btn = document.getElementById('btn-simpan-anggota');
-    btn.innerText = "Menyimpan...";
-    btn.disabled = true;
+    btn.innerText = "Menyimpan..."; btn.disabled = true;
     btn.classList.add('opacity-50', 'cursor-not-allowed');
 
     try {
@@ -361,6 +358,9 @@ async function hapusAhli(id) {
     } catch (err) {}
 }
 
+// ==========================================
+// FUNGSI LAPORAN & EDIT
+// ==========================================
 async function tarikLaporan() {
     const bln = document.getElementById('filter-bln').value, thn = document.getElementById('filter-thn').value;
     document.getElementById('btn-tarik-laporan').innerText = "Mencari...";
@@ -395,7 +395,6 @@ async function tarikLaporan() {
         historyDataGlobal.forEach((t, i) => {
             const warnaTxt = t.tipe === 'setoran' ? 'text-[#16a34a]' : 'text-[#dc2626]';
             const tanda = t.tipe === 'setoran' ? '+' : '-';
-            // PERBAIKAN TANGGAL
             listHTML += `<div class="flex justify-between items-center border-b border-gray-50 py-3 cursor-pointer hover:bg-slate-50 transition p-2 rounded" onclick="bukaModalEdit(${i}, '${t.tipe}')"><div><p class="text-xs font-bold text-slate-800">${formatTanggal(t.tgl)}</p><p class="text-[10px] text-slate-500">${t.txt}</p></div><div class="text-right"><p class="text-xs font-black ${warnaTxt}">${tanda} ${formatRupiah(t.jml)}</p><p class="text-[9px] text-blue-500 font-bold mt-0.5">✏️ Edit</p></div></div>`;
         });
 
@@ -405,19 +404,32 @@ async function tarikLaporan() {
     } catch (err) {} document.getElementById('btn-tarik-laporan').innerText = "Tampilkan Riwayat";
 }
 
+// BUG FIX 1 & 2: Memastikan field dropdown dan data Bulan/Tahun terisi saat Edit 
 function bukaModalEdit(index, tipe) {
     const data = historyDataGlobal[index]; 
     if (!data) return;
 
     if (tipe === 'setoran') {
-        document.getElementById('edit-id-setoran').value = data.raw.ID || "";
-        // Extract tanggal format YYYY-MM-DD untuk input date
+        document.getElementById('edit-id-setoran').value = data.raw["ID"] || data.raw["id"] || "";
         let tglOri = data.tgl.split('T')[0]; 
         document.getElementById('edit-tgl-setoran').value = tglOri;
         document.getElementById('edit-jml-setoran').value = data.jml;
+        
+        if(data.raw.Bulan) document.getElementById('edit-bln-setoran').value = data.raw.Bulan;
+        if(data.raw.Tahun) document.getElementById('edit-thn-setoran').value = data.raw.Tahun;
+
+        let namaAnggota = data.raw["Nama Anggota"] || data.raw["Nama"] || data.raw["nama"] || "";
+        let selectNama = document.getElementById('edit-nama-setoran');
+        
+        for(let i = 0; i < selectNama.options.length; i++) {
+            if(selectNama.options[i].value.includes(namaAnggota)) {
+                selectNama.selectedIndex = i;
+                break;
+            }
+        }
         bukaModalForm('modal-edit-setoran');
     } else {
-        document.getElementById('edit-id-pengeluaran').value = data.raw.ID || "";
+        document.getElementById('edit-id-pengeluaran').value = data.raw["ID"] || data.raw["id"] || "";
         let tglOri = data.tgl.split('T')[0];
         document.getElementById('edit-tgl-pengeluaran').value = tglOri;
         document.getElementById('edit-kep-pengeluaran').value = data.raw.Keperluan || data.raw.Keterangan || "";
@@ -440,28 +452,130 @@ function cekPIN() {
     }
 }
 
-function simpanDataBaru(tipe) {
-    // Tambahkan script untuk integrasi ke Google Sheets di sini nantinya
-    alert("Fitur simpan " + tipe + " ke server masih dalam pengembangan");
-    if(tipe === 'setoran') tutupModalForm('modal-setoran'); else tutupModalForm('modal-pengeluaran');
+// BUG FIX 3: Mengimplementasikan Simpan, Edit, dan Hapus (Mengirim payload aktual ke Google Apps Script)
+async function simpanDataBaru(tipe) {
+    const pinInput = document.getElementById('input-pin').value;
+    if(!isBendahara || !pinInput) return alert("Akses Ditolak! Harap masukkan PIN Bendahara.");
+    
+    let payload = { pin: pinInput, action: "", data: {} };
+    let btn;
+
+    if (tipe === 'setoran') {
+        btn = document.getElementById('btn-simpan-setoran');
+        payload.action = "tambahSetoran";
+        payload.data.tanggal = document.getElementById('form-tgl-masuk').value;
+        payload.data.nama = document.getElementById('form-nama-masuk').value;
+        payload.data.bulan = document.getElementById('form-bln-masuk').value;
+        payload.data.tahun = document.getElementById('form-thn-masuk').value;
+        payload.data.jumlah = document.getElementById('form-jml-masuk').value;
+        
+        if(!payload.data.tanggal || !payload.data.nama || !payload.data.jumlah) return alert("Lengkapi data!");
+    } else {
+        btn = document.getElementById('btn-simpan-pengeluaran');
+        payload.action = "tambahPengeluaran";
+        payload.data.tanggal = document.getElementById('form-tgl-keluar').value;
+        payload.data.keperluan = document.getElementById('form-kep-keluar').value;
+        payload.data.jumlah = document.getElementById('form-jml-keluar').value;
+        
+        if(!payload.data.tanggal || !payload.data.keperluan || !payload.data.jumlah) return alert("Lengkapi data!");
+    }
+
+    btn.innerText = "Menyimpan..."; btn.disabled = true;
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }).then(r=>r.json());
+        if(res.status === "success") {
+            alert("Berhasil disimpan!");
+            if(tipe === 'setoran') {
+                document.getElementById('form-jml-masuk').value = '';
+                tutupModalForm('modal-setoran');
+            } else {
+                document.getElementById('form-kep-keluar').value = '';
+                document.getElementById('form-jml-keluar').value = '';
+                tutupModalForm('modal-pengeluaran');
+            }
+            muatDashboard(); // Refresh
+        } else {
+            alert("Gagal: " + res.message);
+        }
+    } catch(e) { alert("Error jaringan/server!"); }
+    finally { btn.innerText = "Simpan"; btn.disabled = false; }
 }
 
-function simpanEditTransaksi(tipe) {
-    alert("Fitur edit " + tipe + " ke server masih dalam pengembangan");
-    if(tipe === 'setoran') tutupModalForm('modal-edit-setoran'); else tutupModalForm('modal-edit-pengeluaran');
+async function simpanEditTransaksi(tipe) {
+    const pinInput = document.getElementById('input-pin').value;
+    if(!isBendahara || !pinInput) return alert("Akses Ditolak! Harap masukkan PIN Bendahara.");
+    
+    let payload = { pin: pinInput, action: "", data: {} };
+    let btn;
+
+    if (tipe === 'setoran') {
+        btn = document.getElementById('btn-edit-setoran');
+        payload.action = "editSetoran";
+        payload.data.id = document.getElementById('edit-id-setoran').value;
+        payload.data.tanggal = document.getElementById('edit-tgl-setoran').value;
+        payload.data.nama = document.getElementById('edit-nama-setoran').value;
+        payload.data.bulan = document.getElementById('edit-bln-setoran').value;
+        payload.data.tahun = document.getElementById('edit-thn-setoran').value;
+        payload.data.jumlah = document.getElementById('edit-jml-setoran').value;
+    } else {
+        btn = document.getElementById('btn-edit-pengeluaran');
+        payload.action = "editPengeluaran";
+        payload.data.id = document.getElementById('edit-id-pengeluaran').value;
+        payload.data.tanggal = document.getElementById('edit-tgl-pengeluaran').value;
+        payload.data.keperluan = document.getElementById('edit-kep-pengeluaran').value;
+        payload.data.jumlah = document.getElementById('edit-jml-pengeluaran').value;
+    }
+
+    btn.innerText = "Menyimpan..."; btn.disabled = true;
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }).then(r=>r.json());
+        if(res.status === "success") {
+            alert("Data Berhasil Diubah!");
+            if(tipe === 'setoran') tutupModalForm('modal-edit-setoran'); 
+            else tutupModalForm('modal-edit-pengeluaran');
+            tarikLaporan();
+            muatDashboard();
+        } else {
+            alert("Gagal: " + res.message);
+        }
+    } catch(e) { alert("Error jaringan/server!"); }
+    finally { btn.innerText = "Simpan Edit"; btn.disabled = false; }
 }
 
-function hapusTransaksi(tipe) {
-    const konfirmasi = confirm(`Apakah Anda yakin ingin menghapus data ${tipe} ini?`);
-    if (konfirmasi) { alert("Fitur hapus dalam pengembangan"); }
+async function hapusTransaksi(tipe) {
+    const pinInput = document.getElementById('input-pin').value;
+    if(!isBendahara || !pinInput) return alert("Akses Ditolak! Harap masukkan PIN Bendahara.");
+    if (!confirm(`Apakah Anda yakin ingin menghapus data ${tipe} ini?`)) return;
+
+    let payload = { pin: pinInput, action: "", data: {} };
+    if (tipe === 'setoran') {
+        payload.action = "hapusSetoran";
+        payload.data.id = document.getElementById('edit-id-setoran').value;
+    } else {
+        payload.action = "hapusPengeluaran";
+        payload.data.id = document.getElementById('edit-id-pengeluaran').value;
+    }
+
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }).then(r=>r.json());
+        if(res.status === "success") {
+            alert("Data Berhasil Dihapus!");
+            if(tipe === 'setoran') tutupModalForm('modal-edit-setoran'); 
+            else tutupModalForm('modal-edit-pengeluaran');
+            tarikLaporan();
+            muatDashboard();
+        } else {
+            alert("Gagal menghapus: " + res.message);
+        }
+    } catch(e) { alert("Error jaringan/server!"); }
 }
 
-// PERBAIKAN BUG DASHBOARD: Menjalankan secara otomatis saat halaman web dibuka
+// BUG FIX 1 (Lanjutan): Memanggil fungsi muatAnggota secara otomatis di background (tersembunyi) sejak awal agar dropdown nama tidak kosong.
 window.addEventListener("DOMContentLoaded", () => {
     setTanggalOtomatis();
+    muatAnggota(); // Menarik data untuk mengisi Option Value di Select
     pindahHalaman('dashboard'); 
-});
-	
+});	
 	</script>
 </body>
 </html>
