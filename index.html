@@ -196,340 +196,273 @@
 
   <!-- LOGIKA JS & API -->
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwaN6QTyAYgjjRlPaN8ZVPQ8v1_gkpCF3UF4A8U1hxC_vnS5_AQFcC3uxrYlJX6OoG3Gw/exec";
-        let isBendahara = false; 
-        let historyDataGlobal = []; 
+       const API_URL = "https://script.google.com/macros/s/AKfycbwaN6QTyAYgjjRlPaN8ZVPQ8v1_gkpCF3UF4A8U1hxC_vnS5_AQFcC3uxrYlJX6OoG3Gw/exec";
+let isBendahara = false; 
+let historyDataGlobal = []; 
 
-        function setTanggalOtomatis() {
-            const date = new Date();
-            const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), d = String(date.getDate()).padStart(2, '0');
-            const today = `${y}-${m}-${d}`;
-            document.getElementById('form-tgl-masuk').value = today; document.getElementById('form-tgl-keluar').value = today;
-            const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-            document.getElementById('form-bln-masuk').value = namaBulan[date.getMonth()]; document.getElementById('form-thn-masuk').value = y;
-            document.getElementById('filter-bln').value = "Semua"; document.getElementById('filter-thn').value = "Semua";
-        }
+// Fungsi untuk merapikan format tanggal ISO (2026-10-20T17:00:00.000Z menjadi 20 Okt 2026)
+function formatTanggal(isoString) {
+    if (!isoString) return '-';
+    const date = new Date(isoString);
+    if (isNaN(date)) return isoString; 
+    return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
-        if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.ready(); window.Telegram.WebApp.expand(); }
-        function formatRupiah(angka) { return "Rp " + Number(angka).toLocaleString('id-ID'); }
+function setTanggalOtomatis() {
+    const date = new Date();
+    const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), d = String(date.getDate()).padStart(2, '0');
+    const today = `${y}-${m}-${d}`;
+    document.getElementById('form-tgl-masuk').value = today; document.getElementById('form-tgl-keluar').value = today;
+    const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    document.getElementById('form-bln-masuk').value = namaBulan[date.getMonth()]; document.getElementById('form-thn-masuk').value = y;
+    document.getElementById('filter-bln').value = "Semua"; document.getElementById('filter-thn').value = "Semua";
+}
 
-        function pindahHalaman(halaman) {
-            ['dashboard', 'anggota', 'kas', 'laporan'].forEach(h => {
-                document.getElementById('halaman-' + h).classList.add('hidden');
-                document.getElementById('nav-' + h).classList.replace('text-[#2563eb]', 'text-slate-400');
-            });
-            document.getElementById('halaman-' + halaman).classList.remove('hidden');
-            document.getElementById('nav-' + halaman).classList.replace('text-slate-400', 'text-[#2563eb]');
+if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.ready(); window.Telegram.WebApp.expand(); }
+function formatRupiah(angka) { return "Rp " + Number(angka).toLocaleString('id-ID'); }
 
-            if(halaman === 'dashboard') { document.getElementById('judul-halaman').innerText = "KAS Sertifikasi\nSMP IT Insan Robbani"; muatDashboard(); }
-            else if(halaman === 'anggota') { document.getElementById('judul-halaman').innerText = "DATA ANGGOTA"; document.getElementById('teks-header').innerText = "Rekap Iuran Bulanan"; muatAnggota(); }
-            else if(halaman === 'kas') { document.getElementById('judul-halaman').innerText = "MANAJEMEN KAS"; document.getElementById('teks-header').innerText = "Input Transaksi"; }
-            else if(halaman === 'laporan') { document.getElementById('judul-halaman').innerText = "REKAP LAPORAN"; document.getElementById('teks-header').innerText = "Arsip Keuangan"; tarikLaporan(); }
-        }
+function pindahHalaman(halaman) {
+    ['dashboard', 'anggota', 'kas', 'laporan'].forEach(h => {
+        document.getElementById('halaman-' + h).classList.add('hidden');
+        document.getElementById('nav-' + h).classList.replace('text-[#2563eb]', 'text-slate-400');
+    });
+    document.getElementById('halaman-' + halaman).classList.remove('hidden');
+    document.getElementById('nav-' + halaman).classList.replace('text-slate-400', 'text-[#2563eb]');
 
-        function cekAksesAdmin(idModal) {
-            if(!isBendahara) { alert("Akses Ditolak! Harap masukkan PIN Bendahara di menu 'Kas' terlebih dahulu."); pindahHalaman('kas'); }
-            else bukaModalForm(idModal);
-        }
+    // PERBAIKAN BUG JUDUL: Gunakan innerHTML untuk breakline (<br>) dan reset teks-header sementara
+    if(halaman === 'dashboard') { 
+        document.getElementById('judul-halaman').innerHTML = "KAS Sertifikasi<br><span class='text-sm font-normal'>SMP IT Insan Robbani</span>"; 
+        document.getElementById('teks-header').innerText = "Memuat periode..."; 
+        muatDashboard(); 
+    }
+    else if(halaman === 'anggota') { document.getElementById('judul-halaman').innerText = "DATA ANGGOTA"; document.getElementById('teks-header').innerText = "Rekap Iuran Bulanan"; muatAnggota(); }
+    else if(halaman === 'kas') { document.getElementById('judul-halaman').innerText = "MANAJEMEN KAS"; document.getElementById('teks-header').innerText = "Input Transaksi"; }
+    else if(halaman === 'laporan') { document.getElementById('judul-halaman').innerText = "REKAP LAPORAN"; document.getElementById('teks-header').innerText = "Arsip Keuangan"; tarikLaporan(); }
+}
 
-        function bukaModalForm(id) { document.getElementById(id).classList.remove('hidden'); }
-        function tutupModalForm(id) { document.getElementById(id).classList.add('hidden'); }
+function cekAksesAdmin(idModal) {
+    if(!isBendahara) { alert("Akses Ditolak! Harap masukkan PIN Bendahara di menu 'Kas' terlebih dahulu."); pindahHalaman('kas'); }
+    else bukaModalForm(idModal);
+}
 
-        // ==========================================
-        // FUNGSI DASHBOARD
-        // ==========================================
-        async function muatDashboard() {
-            document.getElementById('loading-dashboard').classList.remove('hidden'); document.getElementById('konten-dashboard').classList.add('hidden');
-            try {
-                const [resDash, resSetoran, resPengeluaran] = await Promise.all([ fetch(API_URL + "?action=getDashboard").then(r => r.json()), fetch(API_URL + "?action=getSetoran").then(r => r.json()), fetch(API_URL + "?action=getPengeluaran").then(r => r.json()) ]);
-                if(resDash.status === "success") {
-                    document.getElementById('teks-header').innerText = "Periode: " + resDash.data.periode;
-                    document.getElementById('ui-saldo').innerText = formatRupiah(resDash.data.saldoAkhir);
-                    document.getElementById('ui-pemasukan').innerText = formatRupiah(resDash.data.pemasukanBulanIni);
-                    document.getElementById('ui-pengeluaran').innerText = formatRupiah(resDash.data.pengeluaranBulanIni);
-                    document.getElementById('ui-progress-text').innerText = `${resDash.data.sudahBayar}/${resDash.data.jumlahAnggota}`;
-                    document.getElementById('ui-persentase').innerText = `(${resDash.data.persentase}%)`;
-                    document.getElementById('ui-progress-bar').style.width = resDash.data.persentase + "%";
-                }
-                
-                let semuaTrx = [];
-                if(resSetoran.status === 'success' && resSetoran.data) { 
-                    resSetoran.data.forEach(s => {
-                        let namaOrang = s["Nama Anggota"] || s["Nama"] || s["nama"] || s["Anggota"];
-                        if(!namaOrang) { const kunci = Object.keys(s).find(k => k.toLowerCase().includes('nama')); namaOrang = kunci ? s[kunci] : "Tanpa Nama"; }
-                        semuaTrx.push({ tgl: s.Tanggal, sort: new Date(s.Tanggal).getTime(), tipe: 'setoran', txt: `Setoran: ${namaOrang}`, jml: Number(s.Jumlah || 0) });
-                    }); 
-                }
-                if(resPengeluaran.status === 'success' && resPengeluaran.data) { 
-                    resPengeluaran.data.forEach(p => {
-                        let untukApa = p["Keperluan"] || p["Keterangan"] || p["Detail"] || "Lain-lain";
-                        semuaTrx.push({ tgl: p.Tanggal, sort: new Date(p.Tanggal).getTime(), tipe: 'pengeluaran', txt: `Keluar: ${untukApa}`, jml: Number(p.Jumlah || 0) });
-                    }); 
-                }
-                
-                semuaTrx.sort((a, b) => b.sort - a.sort); 
-                const top5 = semuaTrx.slice(0, 5); let htmlRiwayat = '';
-                top5.forEach(t => {
-                    const warnaTxt = t.tipe === 'setoran' ? 'text-[#16a34a]' : 'text-[#dc2626]';
-                    const tanda = t.tipe === 'setoran' ? '+' : '-';
-                    htmlRiwayat += `<div class="flex justify-between items-center border-b border-gray-50 py-2.5"><div><p class="text-[10px] font-bold text-slate-800">${t.tgl}</p><p class="text-[10px] text-slate-500">${t.txt}</p></div><p class="text-xs font-black ${warnaTxt}">${tanda} ${formatRupiah(t.jml)}</p></div>`;
-                });
-                document.getElementById('dashboard-riwayat').innerHTML = htmlRiwayat === '' ? '<p class="text-center text-[10px] text-slate-400 py-2">Belum ada transaksi.</p>' : htmlRiwayat;
-            } catch (err) {} finally { document.getElementById('loading-dashboard').classList.add('hidden'); document.getElementById('konten-dashboard').classList.remove('hidden'); }
+function bukaModalForm(id) { document.getElementById(id).classList.remove('hidden'); }
+function tutupModalForm(id) { document.getElementById(id).classList.add('hidden'); }
+
+// ==========================================
+// FUNGSI DASHBOARD
+// ==========================================
+async function muatDashboard() {
+    document.getElementById('loading-dashboard').classList.remove('hidden'); document.getElementById('konten-dashboard').classList.add('hidden');
+    try {
+        const [resDash, resSetoran, resPengeluaran] = await Promise.all([ fetch(API_URL + "?action=getDashboard").then(r => r.json()), fetch(API_URL + "?action=getSetoran").then(r => r.json()), fetch(API_URL + "?action=getPengeluaran").then(r => r.json()) ]);
+        if(resDash.status === "success") {
+            document.getElementById('teks-header').innerText = "Periode: " + resDash.data.periode; // Akan berubah otomatis setelah loading selesai
+            document.getElementById('ui-saldo').innerText = formatRupiah(resDash.data.saldoAkhir);
+            document.getElementById('ui-pemasukan').innerText = formatRupiah(resDash.data.pemasukanBulanIni);
+            document.getElementById('ui-pengeluaran').innerText = formatRupiah(resDash.data.pengeluaranBulanIni);
+            document.getElementById('ui-progress-text').innerText = `${resDash.data.sudahBayar}/${resDash.data.jumlahAnggota}`;
+            document.getElementById('ui-persentase').innerText = `(${resDash.data.persentase}%)`;
+            document.getElementById('ui-progress-bar').style.width = resDash.data.persentase + "%";
         }
         
-        async function muatAnggota() {
-            const listAnggota = document.getElementById('list-anggota'), selectAnggota = document.getElementById('form-nama-masuk'), editAnggota = document.getElementById('edit-nama-setoran');
-            document.getElementById('loading-anggota').classList.remove('hidden'); listAnggota.innerHTML = ""; 
-            try {
-                const [resAnggota, resSetoran] = await Promise.all([ fetch(API_URL + "?action=getAnggota").then(r => r.json()), fetch(API_URL + "?action=getSetoran").then(r => r.json()) ]);
-                if(resAnggota.status === "success") {
-                    let html = `<div class="mb-4"><button onclick="cekAksesAdmin('modal-tambah-anggota')" class="w-full bg-blue-50 text-[#2563eb] font-black py-3 rounded-xl shadow-sm active:scale-95 text-sm">+ TAMBAH ANGGOTA BARU</button></div>`;
-                    let dropdownHtml = '<option value="">-- Pilih Anggota --</option>';
-                    const dataSetoran = (resSetoran.status === "success" && resSetoran.data) ? resSetoran.data : [];
-                    if(!resAnggota.data || resAnggota.data.length === 0) listAnggota.innerHTML = html + '<p class="text-center text-slate-500 mt-5">Data kosong.</p>';
-                    else {
-                        resAnggota.data.forEach(a => {
-                            const id = a["ID"] || a["id"] || a[Object.keys(a)[0]];
-                            const nama = a["Nama"] || a["nama"] || a[Object.keys(a)[1]];
-                            const iuran = Number(a["Iuran Bulanan"]) || 50000;
-                            let totalBayar = 0; let daftarBulan = [];
-                            dataSetoran.forEach(s => { if(String(s["ID Anggota"]).trim() === String(id).trim()) { totalBayar += Number(s["Jumlah"] || 0); if(s["Bulan"]) daftarBulan.push(s["Bulan"]); } });
-                            const lunasBulan = Math.floor(totalBayar / iuran), teksBulan = daftarBulan.length > 0 ? daftarBulan.join(", ") : "Belum bayar";
-                            html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4"><div class="flex justify-between items-start border-b border-gray-50 pb-3 mb-3"><div><p class="font-black text-slate-800 text-[13px]">${id} - ${nama}</p><p class="text-[10px] text-slate-500 font-bold mt-0.5">Tarif: ${formatRupiah(iuran)} / bln</p></div><div class="flex items-center gap-2"><span class="bg-blue-50 text-[#2563eb] text-[9px] font-black px-3 py-1 rounded-full uppercase">Aktif</span><button onclick="hapusAhli('${id}')" class="text-red-400 bg-red-50 p-1 rounded-md">🗑️</button></div></div><div class="bg-slate-50 rounded-xl p-3 border border-slate-100 flex justify-between items-center"><div><p class="text-[9px] text-slate-400 font-bold uppercase mb-1">Total Setoran</p><p class="text-sm font-black text-[#16a34a]">${formatRupiah(totalBayar)}</p></div><div class="text-right border-l pl-4"><p class="text-[9px] text-slate-400 font-bold uppercase mb-1">Status Lunas</p><p class="text-sm font-black text-slate-700">${lunasBulan} Bulan</p></div></div><div class="mt-3"><p class="text-[10px] text-slate-500"><span class="font-bold text-slate-700">Terbayar:</span> ${teksBulan}</p></div></div>`;
-                            dropdownHtml += `<option value="${id} - ${nama}">${id} - ${nama}</option>`;
-                        });
-                        listAnggota.innerHTML = html; selectAnggota.innerHTML = dropdownHtml; editAnggota.innerHTML = dropdownHtml;
-                    }
-                }
-            } catch (err) {} finally { document.getElementById('loading-anggota').classList.add('hidden'); }
+        let semuaTrx = [];
+        if(resSetoran.status === 'success' && resSetoran.data) { 
+            resSetoran.data.forEach(s => {
+                let namaOrang = s["Nama Anggota"] || s["Nama"] || s["nama"] || s["Anggota"];
+                if(!namaOrang) { const kunci = Object.keys(s).find(k => k.toLowerCase().includes('nama')); namaOrang = kunci ? s[kunci] : "Tanpa Nama"; }
+                semuaTrx.push({ tgl: s.Tanggal, sort: new Date(s.Tanggal).getTime(), tipe: 'setoran', txt: `Setoran: ${namaOrang}`, jml: Number(s.Jumlah || 0) });
+            }); 
         }
+        if(resPengeluaran.status === 'success' && resPengeluaran.data) { 
+            resPengeluaran.data.forEach(p => {
+                let untukApa = p["Keperluan"] || p["Keterangan"] || p["Detail"] || "Lain-lain";
+                semuaTrx.push({ tgl: p.Tanggal, sort: new Date(p.Tanggal).getTime(), tipe: 'pengeluaran', txt: `Keluar: ${untukApa}`, jml: Number(p.Jumlah || 0) });
+            }); 
+        }
+        
+        semuaTrx.sort((a, b) => b.sort - a.sort); 
+        const top5 = semuaTrx.slice(0, 5); let htmlRiwayat = '';
+        top5.forEach(t => {
+            const warnaTxt = t.tipe === 'setoran' ? 'text-[#16a34a]' : 'text-[#dc2626]';
+            const tanda = t.tipe === 'setoran' ? '+' : '-';
+            // PERBAIKAN TANGGAL: Menggunakan helper formatTanggal
+            htmlRiwayat += `<div class="flex justify-between items-center border-b border-gray-50 py-2.5"><div><p class="text-[10px] font-bold text-slate-800">${formatTanggal(t.tgl)}</p><p class="text-[10px] text-slate-500">${t.txt}</p></div><p class="text-xs font-black ${warnaTxt}">${tanda} ${formatRupiah(t.jml)}</p></div>`;
+        });
+        document.getElementById('dashboard-riwayat').innerHTML = htmlRiwayat === '' ? '<p class="text-center text-[10px] text-slate-400 py-2">Belum ada transaksi.</p>' : htmlRiwayat;
+    } catch (err) {} finally { document.getElementById('loading-dashboard').classList.add('hidden'); document.getElementById('konten-dashboard').classList.remove('hidden'); }
+}
 
-        // ==========================================
-        // FUNGSI SIMPAN ANGGOTA (DIPERBAIKI DARI FORMDATA KE JSON)
-        // ==========================================
-        async function simpanAnggota() {
-            const pinInput = document.getElementById('input-pin').value;
-            const id = document.getElementById('form-id-anggota').value;
-            const nama = document.getElementById('form-nama-anggota').value;
-            const iuran = document.getElementById('form-iuran-anggota').value;
-
-            if (!pinInput || pinInput.trim() === "") return alert("Harap masukkan PIN Bendahara di menu KAS!");
-            if (!id || !nama || !iuran) return alert("Harap lengkapi form data anggota!");
-
-            const btn = document.getElementById('btn-simpan-anggota');
-            btn.innerText = "Menyimpan...";
-            btn.disabled = true;
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-
-            try {
-                // Menggunakan format JSON agar kompatibel dengan Backend JSON.parse()
-                const payload = {
-                    action: "tambahAnggota",
-                    pin: pinInput,
-                    data: { id: id, nama: nama, iuran: iuran }
-                };
-
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
+async function muatAnggota() {
+    const listAnggota = document.getElementById('list-anggota'), selectAnggota = document.getElementById('form-nama-masuk'), editAnggota = document.getElementById('edit-nama-setoran');
+    document.getElementById('loading-anggota').classList.remove('hidden'); listAnggota.innerHTML = ""; 
+    try {
+        const [resAnggota, resSetoran] = await Promise.all([ fetch(API_URL + "?action=getAnggota").then(r => r.json()), fetch(API_URL + "?action=getSetoran").then(r => r.json()) ]);
+        if(resAnggota.status === "success") {
+            let html = `<div class="mb-4"><button onclick="cekAksesAdmin('modal-tambah-anggota')" class="w-full bg-blue-50 text-[#2563eb] font-black py-3 rounded-xl shadow-sm active:scale-95 text-sm">+ TAMBAH ANGGOTA BARU</button></div>`;
+            let dropdownHtml = '<option value="">-- Pilih Anggota --</option>';
+            const dataSetoran = (resSetoran.status === "success" && resSetoran.data) ? resSetoran.data : [];
+            if(!resAnggota.data || resAnggota.data.length === 0) listAnggota.innerHTML = html + '<p class="text-center text-slate-500 mt-5">Data kosong.</p>';
+            else {
+                resAnggota.data.forEach(a => {
+                    const id = a["ID"] || a["id"] || a[Object.keys(a)[0]];
+                    const nama = a["Nama"] || a["nama"] || a[Object.keys(a)[1]];
+                    const iuran = Number(a["Iuran Bulanan"]) || 50000;
+                    let totalBayar = 0; let daftarBulan = [];
+                    dataSetoran.forEach(s => { if(String(s["ID Anggota"]).trim() === String(id).trim()) { totalBayar += Number(s["Jumlah"] || 0); if(s["Bulan"]) daftarBulan.push(s["Bulan"]); } });
+                    const lunasBulan = Math.floor(totalBayar / iuran), teksBulan = daftarBulan.length > 0 ? daftarBulan.join(", ") : "Belum bayar";
+                    html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4"><div class="flex justify-between items-start border-b border-gray-50 pb-3 mb-3"><div><p class="font-black text-slate-800 text-[13px]">${id} - ${nama}</p><p class="text-[10px] text-slate-500 font-bold mt-0.5">Tarif: ${formatRupiah(iuran)} / bln</p></div><div class="flex items-center gap-2"><span class="bg-blue-50 text-[#2563eb] text-[9px] font-black px-3 py-1 rounded-full uppercase">Aktif</span><button onclick="hapusAhli('${id}')" class="text-red-400 bg-red-50 p-1 rounded-md">🗑️</button></div></div><div class="bg-slate-50 rounded-xl p-3 border border-slate-100 flex justify-between items-center"><div><p class="text-[9px] text-slate-400 font-bold uppercase mb-1">Total Setoran</p><p class="text-sm font-black text-[#16a34a]">${formatRupiah(totalBayar)}</p></div><div class="text-right border-l pl-4"><p class="text-[9px] text-slate-400 font-bold uppercase mb-1">Status Lunas</p><p class="text-sm font-black text-slate-700">${lunasBulan} Bulan</p></div></div><div class="mt-3"><p class="text-[10px] text-slate-500"><span class="font-bold text-slate-700">Terbayar:</span> ${teksBulan}</p></div></div>`;
+                    dropdownHtml += `<option value="${id} - ${nama}">${id} - ${nama}</option>`;
                 });
-                
-                const result = await response.json();
-
-                if (result.status === "success") {
-                    alert("Data berhasil disimpan!");
-                    tutupModalForm('modal-tambah-anggota');
-                    // Bersihkan form
-                    document.getElementById('form-id-anggota').value = "";
-                    document.getElementById('form-nama-anggota').value = "";
-                    document.getElementById('form-iuran-anggota').value = "50000";
-                    muatAnggota(); // Muat ulang tabel anggota
-                } else {
-                    alert("Gagal: " + result.message);
-                }
-            } catch (err) {
-                console.error("Error Fetch:", err);
-                alert("Terjadi kesalahan jaringan atau server. Pastikan koneksi stabil dan coba lagi.");
-            } finally {
-                btn.innerText = "Simpan";
-                btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                listAnggota.innerHTML = html; selectAnggota.innerHTML = dropdownHtml; editAnggota.innerHTML = dropdownHtml;
             }
         }
+    } catch (err) {} finally { document.getElementById('loading-anggota').classList.add('hidden'); }
+}
 
-        async function hapusAhli(id) {
-            if(!isBendahara) return alert("Buka kunci PIN Bendahara di menu 'Kas' terlebih dahulu.");
-            if(!confirm("YAKIN HAPUS ANGGOTA ID: " + id + "?")) return;
-            const pinInput = document.getElementById('input-pin').value;
-            try { 
-                const res = await fetch(API_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify({ action: "hapusAnggota", pin: pinInput, data: { id: id } }) 
-                }).then(r=>r.json());
-                
-                if(res.status === "success") { alert("Anggota Dihapus!"); muatAnggota(); }
-                else { alert("Gagal: " + res.message); }
-            } catch (err) {}
+async function simpanAnggota() {
+    const pinInput = document.getElementById('input-pin').value;
+    const id = document.getElementById('form-id-anggota').value;
+    const nama = document.getElementById('form-nama-anggota').value;
+    const iuran = document.getElementById('form-iuran-anggota').value;
+
+    if (!pinInput || pinInput.trim() === "") return alert("Harap masukkan PIN Bendahara di menu KAS!");
+    if (!id || !nama || !iuran) return alert("Harap lengkapi form data anggota!");
+
+    const btn = document.getElementById('btn-simpan-anggota');
+    btn.innerText = "Menyimpan...";
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+    try {
+        const payload = { action: "tambahAnggota", pin: pinInput, data: { id: id, nama: nama, iuran: iuran } };
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const result = await response.json();
+
+        if (result.status === "success") {
+            alert("Data berhasil disimpan!");
+            tutupModalForm('modal-tambah-anggota');
+            document.getElementById('form-id-anggota').value = ""; document.getElementById('form-nama-anggota').value = ""; document.getElementById('form-iuran-anggota').value = "50000";
+            muatAnggota(); 
+        } else {
+            alert("Gagal: " + result.message);
         }
+    } catch (err) { alert("Terjadi kesalahan jaringan atau server."); } 
+    finally { btn.innerText = "Simpan"; btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); }
+}
 
-        // ==========================================
-        // FUNGSI LAPORAN
-        // ==========================================
-        async function tarikLaporan() {
-            const bln = document.getElementById('filter-bln').value, thn = document.getElementById('filter-thn').value;
-            document.getElementById('btn-tarik-laporan').innerText = "Mencari...";
-            try {
-                const [resSetoran, resPengeluaran] = await Promise.all([ fetch(API_URL + "?action=getSetoran").then(r=>r.json()), fetch(API_URL + "?action=getPengeluaran").then(r=>r.json()) ]);
-                let totalMasuk = 0, totalKeluar = 0; historyDataGlobal = [];
-                
-                if(resSetoran.status === 'success' && resSetoran.data) {
-                    resSetoran.data.forEach(s => {
-                        if((bln === "Semua" || String(s.Bulan).toLowerCase() === bln.toLowerCase()) && (thn === "Semua" || String(s.Tahun) === String(thn))) {
-                            totalMasuk += Number(s.Jumlah || 0);
-                            let namaOrang = s["Nama Anggota"] || s["Nama"] || s["nama"] || s["Anggota"];
-                            if(!namaOrang) { const kunci = Object.keys(s).find(k => k.toLowerCase().includes('nama')); namaOrang = kunci ? s[kunci] : "Tanpa Nama"; }
-                            historyDataGlobal.push({ raw: s, tgl: s.Tanggal, sort: new Date(s.Tanggal).getTime(), tipe: 'setoran', txt: `Setoran: ${namaOrang}`, jml: Number(s.Jumlah || 0) });
-                        }
-                    });
-                }
-                if(resPengeluaran.status === 'success' && resPengeluaran.data) {
-                    const mapBln = { "januari": "01", "februari": "02", "maret": "03", "april": "04", "mei": "05", "juni": "06", "juli": "07", "agustus": "08", "september": "09", "oktober": "10", "november": "11", "desember": "12" };
-                    resPengeluaran.data.forEach(p => {
-                        const arr = String(p.Tanggal).split("-");
-                        if(arr.length >= 2 && (thn === "Semua" || arr[0] === String(thn)) && (bln === "Semua" || arr[1] === mapBln[bln.toLowerCase()])) {
-                            totalKeluar += Number(p.Jumlah || 0);
-                            let untukApa = p["Keperluan"] || p["Keterangan"] || p["Detail"] || "Lain-lain";
-                            historyDataGlobal.push({ raw: p, tgl: p.Tanggal, sort: new Date(p.Tanggal).getTime(), tipe: 'pengeluaran', txt: `Keluar: ${untukApa}`, jml: Number(p.Jumlah || 0) });
-                        }
-                    });
-                }
-                
-                historyDataGlobal.sort((a, b) => b.sort - a.sort); 
-                let listHTML = '';
-                historyDataGlobal.forEach((t, i) => {
-                    const warnaTxt = t.tipe === 'setoran' ? 'text-[#16a34a]' : 'text-[#dc2626]';
-                    const tanda = t.tipe === 'setoran' ? '+' : '-';
-                    listHTML += `<div class="flex justify-between items-center border-b border-gray-50 py-3 cursor-pointer hover:bg-slate-50 transition p-2 rounded" onclick="bukaModalEdit(${i})"><div><p class="text-xs font-bold text-slate-800">${t.tgl}</p><p class="text-[10px] text-slate-500">${t.txt}</p></div><div class="text-right"><p class="text-xs font-black ${warnaTxt}">${tanda} ${formatRupiah(t.jml)}</p><p class="text-[9px] text-blue-500 font-bold mt-0.5">✏️ Edit</p></div></div>`;
-                });
+async function hapusAhli(id) {
+    if(!isBendahara) return alert("Buka kunci PIN Bendahara di menu 'Kas' terlebih dahulu.");
+    if(!confirm("YAKIN HAPUS ANGGOTA ID: " + id + "?")) return;
+    const pinInput = document.getElementById('input-pin').value;
+    try { 
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "hapusAnggota", pin: pinInput, data: { id: id } }) }).then(r=>r.json());
+        if(res.status === "success") { alert("Anggota Dihapus!"); muatAnggota(); }
+        else { alert("Gagal: " + res.message); }
+    } catch (err) {}
+}
 
-                document.getElementById('lap-masuk').innerText = formatRupiah(totalMasuk); document.getElementById('lap-keluar').innerText = formatRupiah(totalKeluar); document.getElementById('lap-saldo').innerText = formatRupiah(totalMasuk - totalKeluar);
-                document.getElementById('rincian-laporan').innerHTML = listHTML === '' ? '<p class="text-center text-xs py-4">Data kosong.</p>' : listHTML;
-                document.getElementById('hasil-laporan').classList.remove('hidden');
-            } catch (err) {} document.getElementById('btn-tarik-laporan').innerText = "Tampilkan Riwayat";
+async function tarikLaporan() {
+    const bln = document.getElementById('filter-bln').value, thn = document.getElementById('filter-thn').value;
+    document.getElementById('btn-tarik-laporan').innerText = "Mencari...";
+    try {
+        const [resSetoran, resPengeluaran] = await Promise.all([ fetch(API_URL + "?action=getSetoran").then(r=>r.json()), fetch(API_URL + "?action=getPengeluaran").then(r=>r.json()) ]);
+        let totalMasuk = 0, totalKeluar = 0; historyDataGlobal = [];
+        
+        if(resSetoran.status === 'success' && resSetoran.data) {
+            resSetoran.data.forEach(s => {
+                if((bln === "Semua" || String(s.Bulan).toLowerCase() === bln.toLowerCase()) && (thn === "Semua" || String(s.Tahun) === String(thn))) {
+                    totalMasuk += Number(s.Jumlah || 0);
+                    let namaOrang = s["Nama Anggota"] || s["Nama"] || s["nama"] || s["Anggota"];
+                    if(!namaOrang) { const kunci = Object.keys(s).find(k => k.toLowerCase().includes('nama')); namaOrang = kunci ? s[kunci] : "Tanpa Nama"; }
+                    historyDataGlobal.push({ raw: s, tgl: s.Tanggal, sort: new Date(s.Tanggal).getTime(), tipe: 'setoran', txt: `Setoran: ${namaOrang}`, jml: Number(s.Jumlah || 0) });
+                }
+            });
         }
+        if(resPengeluaran.status === 'success' && resPengeluaran.data) {
+            const mapBln = { "januari": "01", "februari": "02", "maret": "03", "april": "04", "mei": "05", "juni": "06", "juli": "07", "agustus": "08", "september": "09", "oktober": "10", "november": "11", "desember": "12" };
+            resPengeluaran.data.forEach(p => {
+                const arr = String(p.Tanggal).split("-");
+                if(arr.length >= 2 && (thn === "Semua" || arr[0] === String(thn)) && (bln === "Semua" || arr[1] === mapBln[bln.toLowerCase()])) {
+                    totalKeluar += Number(p.Jumlah || 0);
+                    let untukApa = p["Keperluan"] || p["Keterangan"] || p["Detail"] || "Lain-lain";
+                    historyDataGlobal.push({ raw: p, tgl: p.Tanggal, sort: new Date(p.Tanggal).getTime(), tipe: 'pengeluaran', txt: `Keluar: ${untukApa}`, jml: Number(p.Jumlah || 0) });
+                }
+            });
+        }
+        
+        historyDataGlobal.sort((a, b) => b.sort - a.sort); 
+        let listHTML = '';
+        historyDataGlobal.forEach((t, i) => {
+            const warnaTxt = t.tipe === 'setoran' ? 'text-[#16a34a]' : 'text-[#dc2626]';
+            const tanda = t.tipe === 'setoran' ? '+' : '-';
+            // PERBAIKAN TANGGAL
+            listHTML += `<div class="flex justify-between items-center border-b border-gray-50 py-3 cursor-pointer hover:bg-slate-50 transition p-2 rounded" onclick="bukaModalEdit(${i}, '${t.tipe}')"><div><p class="text-xs font-bold text-slate-800">${formatTanggal(t.tgl)}</p><p class="text-[10px] text-slate-500">${t.txt}</p></div><div class="text-right"><p class="text-xs font-black ${warnaTxt}">${tanda} ${formatRupiah(t.jml)}</p><p class="text-[9px] text-blue-500 font-bold mt-0.5">✏️ Edit</p></div></div>`;
+        });
 
-       // Melanjutkan kondisi bukaModalEdit yang terpotong
-function bukaModalEdit(id, tipe) {
-    // Contoh pengambilan data (sesuaikan dengan sumber data/array Anda)
-    const data = dataTransaksi.find(t => t.id === id); 
+        document.getElementById('lap-masuk').innerText = formatRupiah(totalMasuk); document.getElementById('lap-keluar').innerText = formatRupiah(totalKeluar); document.getElementById('lap-saldo').innerText = formatRupiah(totalMasuk - totalKeluar);
+        document.getElementById('rincian-laporan').innerHTML = listHTML === '' ? '<p class="text-center text-xs py-4">Data kosong.</p>' : listHTML;
+        document.getElementById('hasil-laporan').classList.remove('hidden');
+    } catch (err) {} document.getElementById('btn-tarik-laporan').innerText = "Tampilkan Riwayat";
+}
+
+function bukaModalEdit(index, tipe) {
+    const data = historyDataGlobal[index]; 
     if (!data) return;
 
     if (tipe === 'setoran') {
-        document.getElementById('edit-id-setoran').value = data.id;
-        document.getElementById('edit-tanggal-setoran').value = data.tanggal;
-        document.getElementById('edit-nama-anggota').value = data.nama;
-        document.getElementById('edit-jumlah-setoran').value = data.jumlah;
-        document.getElementById('edit-keterangan-setoran').value = data.keterangan;
+        document.getElementById('edit-id-setoran').value = data.raw.ID || "";
+        // Extract tanggal format YYYY-MM-DD untuk input date
+        let tglOri = data.tgl.split('T')[0]; 
+        document.getElementById('edit-tgl-setoran').value = tglOri;
+        document.getElementById('edit-jml-setoran').value = data.jml;
         bukaModalForm('modal-edit-setoran');
     } else {
-        document.getElementById('edit-id-pengeluaran').value = data.id;
-        document.getElementById('edit-tanggal-pengeluaran').value = data.tanggal;
-        document.getElementById('edit-judul-pengeluaran').value = data.judul;
-        document.getElementById('edit-jumlah-pengeluaran').value = data.jumlah;
-        document.getElementById('edit-keterangan-pengeluaran').value = data.keterangan;
+        document.getElementById('edit-id-pengeluaran').value = data.raw.ID || "";
+        let tglOri = data.tgl.split('T')[0];
+        document.getElementById('edit-tgl-pengeluaran').value = tglOri;
+        document.getElementById('edit-kep-pengeluaran').value = data.raw.Keperluan || data.raw.Keterangan || "";
+        document.getElementById('edit-jml-pengeluaran').value = data.jml;
         bukaModalForm('modal-edit-pengeluaran');
     }
 }
 
-// Fungsi Cek PIN Akses Bendahara
 function cekPIN() {
     const pinInput = document.getElementById('input-pin').value;
-    const pinValid = '123456'; // Sesuaikan dengan PIN yang diinginkan
+    const pinValid = '123456'; 
 
     if (pinInput === pinValid) {
+        isBendahara = true;
         document.getElementById('modal-pin').classList.add('hidden');
-        document.getElementById('panel-bendahara').classList.remove('hidden'); // Sesuaikan ID panel
-        document.getElementById('input-pin').value = '';
+        document.getElementById('area-transaksi').classList.remove('hidden'); 
+        document.getElementById('indikator-kunci').classList.replace('bg-red-500', 'bg-green-500');
     } else {
         alert('PIN yang Anda masukkan salah!');
     }
 }
 
-// Fungsi Simpan Data Baru
 function simpanDataBaru(tipe) {
-    if (tipe === 'setoran') {
-        const tanggal = document.getElementById('tanggal-setoran').value;
-        const nama = document.getElementById('nama-anggota').value;
-        const jumlah = document.getElementById('jumlah-setoran').value;
-        const keterangan = document.getElementById('keterangan-setoran').value;
-        
-        // Proses simpan data (Google Apps Script / Local)
-        console.log('Setoran Baru:', { tanggal, nama, jumlah, keterangan });
-        
-        tutupModal('modal-tambah-setoran');
-        document.getElementById('form-tambah-setoran').reset();
-    } else if (tipe === 'pengeluaran') {
-        const tanggal = document.getElementById('tanggal-pengeluaran').value;
-        const judul = document.getElementById('judul-pengeluaran').value;
-        const jumlah = document.getElementById('jumlah-pengeluaran').value;
-        const keterangan = document.getElementById('keterangan-pengeluaran').value;
-        
-        // Proses simpan data
-        console.log('Pengeluaran Baru:', { tanggal, judul, jumlah, keterangan });
-        
-        tutupModal('modal-tambah-pengeluaran');
-        document.getElementById('form-tambah-pengeluaran').reset();
-    }
+    // Tambahkan script untuk integrasi ke Google Sheets di sini nantinya
+    alert("Fitur simpan " + tipe + " ke server masih dalam pengembangan");
+    if(tipe === 'setoran') tutupModalForm('modal-setoran'); else tutupModalForm('modal-pengeluaran');
 }
 
-// Fungsi Simpan Hasil Edit
 function simpanEditTransaksi(tipe) {
-    if (tipe === 'setoran') {
-        const id = document.getElementById('edit-id-setoran').value;
-        const tanggal = document.getElementById('edit-tanggal-setoran').value;
-        const nama = document.getElementById('edit-nama-anggota').value;
-        const jumlah = document.getElementById('edit-jumlah-setoran').value;
-        const keterangan = document.getElementById('edit-keterangan-setoran').value;
-        
-        // Proses update data berdasarkan ID
-        console.log('Update Setoran:', { id, tanggal, nama, jumlah, keterangan });
-        tutupModal('modal-edit-setoran');
-    } else if (tipe === 'pengeluaran') {
-        const id = document.getElementById('edit-id-pengeluaran').value;
-        const tanggal = document.getElementById('edit-tanggal-pengeluaran').value;
-        const judul = document.getElementById('edit-judul-pengeluaran').value;
-        const jumlah = document.getElementById('edit-jumlah-pengeluaran').value;
-        const keterangan = document.getElementById('edit-keterangan-pengeluaran').value;
-        
-        // Proses update data berdasarkan ID
-        console.log('Update Pengeluaran:', { id, tanggal, judul, jumlah, keterangan });
-        tutupModal('modal-edit-pengeluaran');
-    }
+    alert("Fitur edit " + tipe + " ke server masih dalam pengembangan");
+    if(tipe === 'setoran') tutupModalForm('modal-edit-setoran'); else tutupModalForm('modal-edit-pengeluaran');
 }
 
-// Fungsi Hapus Data
-function hapusTransaksi(id, tipe) {
+function hapusTransaksi(tipe) {
     const konfirmasi = confirm(`Apakah Anda yakin ingin menghapus data ${tipe} ini?`);
-    if (konfirmasi) {
-        // Proses hapus data berdasarkan ID
-        console.log(`Data ${tipe} dengan ID ${id} berhasil dihapus.`);
-        
-        // Refresh tabel tampilan setelah dihapus
-        // muatDataTabel(); 
-    }
+    if (konfirmasi) { alert("Fitur hapus dalam pengembangan"); }
 }
 
-// Fungsi utilitas buka/tutup modal
-function bukaModalForm(idModal) {
-    document.getElementById(idModal).classList.remove('hidden');
-}
-
-function tutupModal(idModal) {
-    document.getElementById(idModal).classList.add('hidden');
-}
-       
-    </script>
+// PERBAIKAN BUG DASHBOARD: Menjalankan secara otomatis saat halaman web dibuka
+window.addEventListener("DOMContentLoaded", () => {
+    setTanggalOtomatis();
+    pindahHalaman('dashboard'); 
+});
+	
+	</script>
 </body>
 </html>
 
