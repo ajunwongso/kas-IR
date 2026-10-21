@@ -227,16 +227,6 @@
             else if(halaman === 'laporan') { document.getElementById('judul-halaman').innerText = "REKAP LAPORAN"; document.getElementById('teks-header').innerText = "Arsip Keuangan"; tarikLaporan(); }
         }
 
-        function cekPIN() {
-            if(document.getElementById('input-pin').value === "031391") {
-                isBendahara = true;
-                document.getElementById('modal-pin').classList.add('hidden');
-                document.getElementById('area-transaksi').classList.remove('hidden');
-                document.getElementById('indikator-kunci').classList.replace('bg-red-500', 'bg-green-500');
-            } else alert("PIN Salah!");
-            document.getElementById('input-pin').value = "";
-        }
-
         function cekAksesAdmin(idModal) {
             if(!isBendahara) { alert("Akses Ditolak! Harap masukkan PIN Bendahara di menu 'Kas' terlebih dahulu."); pindahHalaman('kas'); }
             else bukaModalForm(idModal);
@@ -316,15 +306,57 @@
             } catch (err) {} finally { document.getElementById('loading-anggota').classList.add('hidden'); }
         }
 
-        async function simpanAnggota() {
-            const id = document.getElementById('form-id-anggota').value, nama = document.getElementById('form-nama-anggota').value, iuran = document.getElementById('form-iuran-anggota').value;
-            if(!id || !nama || !iuran) return alert("Lengkapi data anggota!");
-            document.getElementById('btn-simpan-anggota').innerText = "Menyimpan...";
-            try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "tambahAnggota", data: { id: id, nama: nama, iuran: iuran } }) }).then(r=>r.json());
-                if(res.status === "success") { alert("Anggota baru ditambahkan!"); tutupModalForm('modal-tambah-anggota'); muatAnggota(); }
-            } catch (err) {} document.getElementById('btn-simpan-anggota').innerText = "Simpan Anggota";
+        // 1. FUNGSI SIMPAN (Dengan Anti Double-Submit, Error Handling, & PIN Backend)
+async function simpanAnggota() {
+    const btn = document.getElementById('btn-simpan-anggota');
+    const form = document.getElementById('form-tambah-anggota');
+    const pinInput = document.getElementById('input-pin').value;
+
+    // Validasi input PIN agar tidak kosong
+    if (!pinInput || pinInput.trim() === "") {
+        alert("Harap masukkan PIN Bendahara!");
+        return;
+    }
+
+    // Nonaktifkan tombol & ubah teks (Mencegah Double Submit)
+    btn.innerText = "Menyimpan...";
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+    try {
+        // Ambil data form dan tambahkan PIN ke dalamnya
+        const formData = new FormData(form);
+        formData.append('pin', pinInput); // Mengirim PIN ke server untuk divalidasi
+
+        // Kirim request ke Google Apps Script
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+
+        // Cek status dari server
+        if (result.status === "success") {
+            alert("Data berhasil disimpan!");
+            tutupModalForm('modal-tambah-anggota');
+            // loadDataAnggota(); // Aktifkan ini untuk memuat ulang data tabel Anda
+        } else {
+            // Jika PIN salah atau ada error dari server
+            alert("Gagal: " + result.message);
         }
+
+    } catch (err) {
+        // Menangani error jaringan atau server down
+        console.error("Error Fetch:", err);
+        alert("Terjadi kesalahan jaringan atau server. Pastikan koneksi stabil dan coba lagi.");
+    } finally {
+        // Mengaktifkan kembali tombol (Selalu dieksekusi walau sukses/gagal)
+        btn.innerText = "Simpan";
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+}
 
         async function hapusAhli(id) {
             if(!isBendahara) return alert("Buka kunci PIN Bendahara di menu 'Kas' terlebih dahulu.");
@@ -429,36 +461,54 @@
             document.getElementById(btn).innerText = "Simpan";
         }
 
-        async function simpanEditTransaksi(jenis) {
-            let act, pay, btn, mod;
-            if(jenis === 'setoran') {
-                const pts = document.getElementById('edit-nama-setoran').value.split(" - ");
-                pay = { idTransaksi: document.getElementById('edit-id-setoran').value, tanggal: document.getElementById('edit-tgl-setoran').value, idAnggota: pts[0], namaAnggota: pts[1]||pts[0], bulan: document.getElementById('edit-bln-setoran').value, tahun: document.getElementById('edit-thn-setoran').value, jumlah: document.getElementById('edit-jml-setoran').value };
-                act = "editSetoran"; btn = 'btn-edit-setoran'; mod = 'modal-edit-setoran';
-            } else {
-                pay = { idTransaksi: document.getElementById('edit-id-pengeluaran').value, tanggal: document.getElementById('edit-tgl-pengeluaran').value, keperluan: document.getElementById('edit-kep-pengeluaran').value, jumlah: document.getElementById('edit-jml-pengeluaran').value };
-                act = "editPengeluaran"; btn = 'btn-edit-pengeluaran'; mod = 'modal-edit-pengeluaran';
-            }
-            document.getElementById(btn).innerText = "Mengupdate...";
-            try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: act, data: pay }) }).then(r=>r.json());
-                if(res.status === "success") { alert("Data berhasil diupdate!"); tutupModalForm(mod); tarikLaporan(); muatDashboard(); }
-                else { alert("Penyimpanan Gagal: " + res.message + "\n\nPastikan Anda sudah klik Deploy Versi Baru di Google Apps Script!"); }
-            } catch (err) { alert("Gagal menyambung ke server."); } 
-            document.getElementById(btn).innerText = "Simpan Edit";
-        }
+       / 2. FUNGSI TUTUP MODAL (Membersihkan form otomatis saat ditutup)
+function tutupModalForm(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
 
-        async function hapusTransaksi(jenis) {
-            if(!confirm("YAKIN HAPUS TRANSAKSI INI PERMANEN?")) return;
-            const idTarget = jenis === 'setoran' ? document.getElementById('edit-id-setoran').value : document.getElementById('edit-id-pengeluaran').value;
-            const mod = jenis === 'setoran' ? 'modal-edit-setoran' : 'modal-edit-pengeluaran';
-            try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "hapusTransaksi", data: { jenis: jenis, idTransaksi: idTarget } }) }).then(r=>r.json());
-                if(res.status === "success") { alert("Transaksi dihapus!"); tutupModalForm(mod); tarikLaporan(); muatDashboard(); }
-                else { alert("Gagal Menghapus: " + res.message); }
-            } catch (err) {}
-        }
+    // Sembunyikan modal
+    modal.classList.add('hidden');
 
+    // Cari tag <form> di dalam modal dan reset isinya
+    const form = modal.querySelector('form');
+    if (form) {
+        form.reset();
+    }
+
+    // Bersihkan semua input tersembunyi (hidden input) jika ada (berguna untuk modal Edit)
+    const hiddenInputs = modal.querySelectorAll('input[type="hidden"]');
+    hiddenInputs.forEach(input => input.value = '');
+
+    // Bersihkan input PIN jika berada di luar tag <form> namun di dalam modal
+    const pinInput = modal.querySelector('#input-pin');
+    if (pinInput) {
+        pinInput.value = '';
+    }
+}
+
+// 3. FUNGSI BUKA MODAL EDIT (Logika ID yang aman)
+function bukaModalEdit(index) {
+    const data = dataGlobal[index]; // Asumsi dataGlobal menampung respon JSON Anda
+    
+    // Gunakan nama kolom (header) yang pasti dari Google Sheets Anda. 
+    // Sesuaikan "ID_Transaksi" dengan nama header asli di Spreadsheet Anda.
+    const idTransaksi = data.raw["ID_Transaksi"] || data.raw["ID"]; 
+    
+    if (!idTransaksi) {
+        alert("Gagal memuat data: ID tidak ditemukan pada baris ini.");
+        console.error("Data baris:", data.raw);
+        return;
+    }
+    
+    // Isi data ke dalam form modal edit
+    document.getElementById('edit-id').value = idTransaksi;
+    
+    // Contoh mengisi field lain (sesuaikan dengan ID input Anda)
+    // document.getElementById('edit-nominal').value = data.raw["Nominal"];
+    
+    // Tampilkan modal
+    document.getElementById('modal-edit-transaksi').classList.remove('hidden');
+}
         setTanggalOtomatis(); muatDashboard(); muatAnggota();
     </script>
 </body>
