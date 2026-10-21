@@ -194,7 +194,7 @@
         </div>
     </div>
 
-    <!-- LOGIKA JS & API -->
+  <!-- LOGIKA JS & API -->
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwaN6QTyAYgjjRlPaN8ZVPQ8v1_gkpCF3UF4A8U1hxC_vnS5_AQFcC3uxrYlJX6OoG3Gw/exec";
         let isBendahara = false; 
@@ -236,7 +236,7 @@
         function tutupModalForm(id) { document.getElementById(id).classList.add('hidden'); }
 
         // ==========================================
-        // FUNGSI DASHBOARD (Sudah Diperbaiki undefined)
+        // FUNGSI DASHBOARD
         // ==========================================
         async function muatDashboard() {
             document.getElementById('loading-dashboard').classList.remove('hidden'); document.getElementById('konten-dashboard').classList.add('hidden');
@@ -255,7 +255,6 @@
                 let semuaTrx = [];
                 if(resSetoran.status === 'success' && resSetoran.data) { 
                     resSetoran.data.forEach(s => {
-                        // PENCARI NAMA OTOMATIS ANTI-UNDEFINED
                         let namaOrang = s["Nama Anggota"] || s["Nama"] || s["nama"] || s["Anggota"];
                         if(!namaOrang) { const kunci = Object.keys(s).find(k => k.toLowerCase().includes('nama')); namaOrang = kunci ? s[kunci] : "Tanpa Nama"; }
                         semuaTrx.push({ tgl: s.Tanggal, sort: new Date(s.Tanggal).getTime(), tipe: 'setoran', txt: `Setoran: ${namaOrang}`, jml: Number(s.Jumlah || 0) });
@@ -278,7 +277,7 @@
                 document.getElementById('dashboard-riwayat').innerHTML = htmlRiwayat === '' ? '<p class="text-center text-[10px] text-slate-400 py-2">Belum ada transaksi.</p>' : htmlRiwayat;
             } catch (err) {} finally { document.getElementById('loading-dashboard').classList.add('hidden'); document.getElementById('konten-dashboard').classList.remove('hidden'); }
         }
-		
+        
         async function muatAnggota() {
             const listAnggota = document.getElementById('list-anggota'), selectAnggota = document.getElementById('form-nama-masuk'), editAnggota = document.getElementById('edit-nama-setoran');
             document.getElementById('loading-anggota').classList.remove('hidden'); listAnggota.innerHTML = ""; 
@@ -306,68 +305,76 @@
             } catch (err) {} finally { document.getElementById('loading-anggota').classList.add('hidden'); }
         }
 
-        // 1. FUNGSI SIMPAN (Dengan Anti Double-Submit, Error Handling, & PIN Backend)
-async function simpanAnggota() {
-    const btn = document.getElementById('btn-simpan-anggota');
-    const form = document.getElementById('form-tambah-anggota');
-    const pinInput = document.getElementById('input-pin').value;
+        // ==========================================
+        // FUNGSI SIMPAN ANGGOTA (DIPERBAIKI DARI FORMDATA KE JSON)
+        // ==========================================
+        async function simpanAnggota() {
+            const pinInput = document.getElementById('input-pin').value;
+            const id = document.getElementById('form-id-anggota').value;
+            const nama = document.getElementById('form-nama-anggota').value;
+            const iuran = document.getElementById('form-iuran-anggota').value;
 
-    // Validasi input PIN agar tidak kosong
-    if (!pinInput || pinInput.trim() === "") {
-        alert("Harap masukkan PIN Bendahara!");
-        return;
-    }
+            if (!pinInput || pinInput.trim() === "") return alert("Harap masukkan PIN Bendahara di menu KAS!");
+            if (!id || !nama || !iuran) return alert("Harap lengkapi form data anggota!");
 
-    // Nonaktifkan tombol & ubah teks (Mencegah Double Submit)
-    btn.innerText = "Menyimpan...";
-    btn.disabled = true;
-    btn.classList.add('opacity-50', 'cursor-not-allowed');
+            const btn = document.getElementById('btn-simpan-anggota');
+            btn.innerText = "Menyimpan...";
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
 
-    try {
-        // Ambil data form dan tambahkan PIN ke dalamnya
-        const formData = new FormData(form);
-        formData.append('pin', pinInput); // Mengirim PIN ke server untuk divalidasi
+            try {
+                // Menggunakan format JSON agar kompatibel dengan Backend JSON.parse()
+                const payload = {
+                    action: "tambahAnggota",
+                    pin: pinInput,
+                    data: { id: id, nama: nama, iuran: iuran }
+                };
 
-        // Kirim request ke Google Apps Script
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            body: formData
-        });
-        
-        const result = await response.json();
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
 
-        // Cek status dari server
-        if (result.status === "success") {
-            alert("Data berhasil disimpan!");
-            tutupModalForm('modal-tambah-anggota');
-            // loadDataAnggota(); // Aktifkan ini untuk memuat ulang data tabel Anda
-        } else {
-            // Jika PIN salah atau ada error dari server
-            alert("Gagal: " + result.message);
+                if (result.status === "success") {
+                    alert("Data berhasil disimpan!");
+                    tutupModalForm('modal-tambah-anggota');
+                    // Bersihkan form
+                    document.getElementById('form-id-anggota').value = "";
+                    document.getElementById('form-nama-anggota').value = "";
+                    document.getElementById('form-iuran-anggota').value = "50000";
+                    muatAnggota(); // Muat ulang tabel anggota
+                } else {
+                    alert("Gagal: " + result.message);
+                }
+            } catch (err) {
+                console.error("Error Fetch:", err);
+                alert("Terjadi kesalahan jaringan atau server. Pastikan koneksi stabil dan coba lagi.");
+            } finally {
+                btn.innerText = "Simpan";
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
         }
-
-    } catch (err) {
-        // Menangani error jaringan atau server down
-        console.error("Error Fetch:", err);
-        alert("Terjadi kesalahan jaringan atau server. Pastikan koneksi stabil dan coba lagi.");
-    } finally {
-        // Mengaktifkan kembali tombol (Selalu dieksekusi walau sukses/gagal)
-        btn.innerText = "Simpan";
-        btn.disabled = false;
-        btn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
-}
 
         async function hapusAhli(id) {
             if(!isBendahara) return alert("Buka kunci PIN Bendahara di menu 'Kas' terlebih dahulu.");
             if(!confirm("YAKIN HAPUS ANGGOTA ID: " + id + "?")) return;
-            try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "hapusAnggota", data: { id: id } }) }).then(r=>r.json());
-                if(res.status === "success") { alert("Dihapus!"); muatAnggota(); }
+            const pinInput = document.getElementById('input-pin').value;
+            try { 
+                const res = await fetch(API_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: "hapusAnggota", pin: pinInput, data: { id: id } }) 
+                }).then(r=>r.json());
+                
+                if(res.status === "success") { alert("Anggota Dihapus!"); muatAnggota(); }
+                else { alert("Gagal: " + res.message); }
             } catch (err) {}
         }
 
-       // ==========================================
-        // FUNGSI LAPORAN (Sudah Diperbaiki undefined)
+        // ==========================================
+        // FUNGSI LAPORAN
         // ==========================================
         async function tarikLaporan() {
             const bln = document.getElementById('filter-bln').value, thn = document.getElementById('filter-thn').value;
@@ -380,11 +387,8 @@ async function simpanAnggota() {
                     resSetoran.data.forEach(s => {
                         if((bln === "Semua" || String(s.Bulan).toLowerCase() === bln.toLowerCase()) && (thn === "Semua" || String(s.Tahun) === String(thn))) {
                             totalMasuk += Number(s.Jumlah || 0);
-                            
-                            // PENCARI NAMA OTOMATIS ANTI-UNDEFINED
                             let namaOrang = s["Nama Anggota"] || s["Nama"] || s["nama"] || s["Anggota"];
                             if(!namaOrang) { const kunci = Object.keys(s).find(k => k.toLowerCase().includes('nama')); namaOrang = kunci ? s[kunci] : "Tanpa Nama"; }
-                            
                             historyDataGlobal.push({ raw: s, tgl: s.Tanggal, sort: new Date(s.Tanggal).getTime(), tipe: 'setoran', txt: `Setoran: ${namaOrang}`, jml: Number(s.Jumlah || 0) });
                         }
                     });
@@ -395,7 +399,6 @@ async function simpanAnggota() {
                         const arr = String(p.Tanggal).split("-");
                         if(arr.length >= 2 && (thn === "Semua" || arr[0] === String(thn)) && (bln === "Semua" || arr[1] === mapBln[bln.toLowerCase()])) {
                             totalKeluar += Number(p.Jumlah || 0);
-                            
                             let untukApa = p["Keperluan"] || p["Keterangan"] || p["Detail"] || "Lain-lain";
                             historyDataGlobal.push({ raw: p, tgl: p.Tanggal, sort: new Date(p.Tanggal).getTime(), tipe: 'pengeluaran', txt: `Keluar: ${untukApa}`, jml: Number(p.Jumlah || 0) });
                         }
@@ -416,12 +419,10 @@ async function simpanAnggota() {
             } catch (err) {} document.getElementById('btn-tarik-laporan').innerText = "Tampilkan Riwayat";
         }
 
-        // FUNGSI PENCARI ID CERDAS
+        // FUNGSI PENCARI ID CERDAS (EDIT)
         function bukaModalEdit(index) {
             if(!isBendahara) { alert("Akses Ditolak! Masukkan PIN Bendahara di menu KAS terlebih dahulu."); pindahHalaman('kas'); return; }
             const data = historyDataGlobal[index];
-            
-            // Pencari ID Kolom Pertama Otomatis (Anti-Gagal)
             const idTransaksi = data.raw["ID"] || data.raw["id"] || data.raw["ID Transaksi"] || data.raw["ID Setoran"] || data.raw[Object.keys(data.raw)[0]];
 
             if(data.tipe === 'setoran') {
@@ -441,75 +442,136 @@ async function simpanAnggota() {
             }
         }
 
+        // ==========================================
+        // KELANJUTAN FUNGSI TRANSAKSI YANG TERPOTONG
+        // ==========================================
         async function simpanDataBaru(jenis) {
             let act, pay, btn, mod;
             if(jenis === 'setoran') {
-                const nm = document.getElementById('form-nama-masuk').value; if(!nm) return alert("Pilih Nama!"); const pts = nm.split(" - ");
+                const nm = document.getElementById('form-nama-masuk').value; if(!nm) return alert("Pilih Nama Anggota!"); 
+                const pts = nm.split(" - ");
                 pay = { tanggal: document.getElementById('form-tgl-masuk').value, idAnggota: pts[0], namaAnggota: pts[1]||pts[0], bulan: document.getElementById('form-bln-masuk').value, tahun: document.getElementById('form-thn-masuk').value, jumlah: document.getElementById('form-jml-masuk').value, keterangan: "Web" };
                 act = "tambahSetoran"; btn = 'btn-simpan-setoran'; mod = 'modal-setoran';
             } else {
                 pay = { tanggal: document.getElementById('form-tgl-keluar').value, keperluan: document.getElementById('form-kep-keluar').value, jumlah: document.getElementById('form-jml-keluar').value, keterangan: "Web" };
                 act = "tambahPengeluaran"; btn = 'btn-simpan-pengeluaran'; mod = 'modal-pengeluaran';
             }
-            if(!pay.tanggal || !pay.jumlah) return alert("Lengkapi data!");
-            document.getElementById(btn).innerText = "Menyimpan...";
+            
+            if(!pay.tanggal || !pay.jumlah) return alert("Lengkapi semua data formulir!");
+            
+            const pinInput = document.getElementById('input-pin').value;
+            if(!pinInput) return alert("Akses ditolak! Buka kunci PIN terlebih dahulu.");
+
+            const tombol = document.getElementById(btn);
+            tombol.innerText = "Menyimpan...";
+            tombol.disabled = true;
+
             try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: act, data: pay }) }).then(r=>r.json());
-                if(res.status === "success") { alert("Sukses!"); tutupModalForm(mod); document.getElementById('form-jml-masuk').value=""; document.getElementById('form-jml-keluar').value=""; document.getElementById('form-kep-keluar').value=""; muatDashboard(); }
-                else { alert("Gagal: " + res.message); }
-            } catch (err) { alert("Error jaringan."); } 
-            document.getElementById(btn).innerText = "Simpan";
+                const payload = { action: act, pin: pinInput, data: pay };
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                }).then(r => r.json());
+
+                if (res.status === "success") {
+                    alert("Transaksi berhasil disimpan!");
+                    tutupModalForm(mod);
+                    // Reset input Form
+                    document.getElementById('form-jml-masuk').value = "";
+                    document.getElementById('form-jml-keluar').value = "";
+                    document.getElementById('form-kep-keluar').value = "";
+                } else {
+                    alert("Gagal menyimpan: " + res.message);
+                }
+            } catch (err) {
+                alert("Terjadi kesalahan jaringan.");
+            } finally {
+                tombol.innerText = "Simpan";
+                tombol.disabled = false;
+            }
         }
 
-       / 2. FUNGSI TUTUP MODAL (Membersihkan form otomatis saat ditutup)
-function tutupModalForm(id) {
-    const modal = document.getElementById(id);
-    if (!modal) return;
+        async function simpanEditTransaksi(jenis) {
+            let act, pay, btn, mod;
+            if(jenis === 'setoran') {
+                const nm = document.getElementById('edit-nama-setoran').value;
+                const pts = nm.split(" - ");
+                pay = { idTransaksi: document.getElementById('edit-id-setoran').value, tanggal: document.getElementById('edit-tgl-setoran').value, idAnggota: pts[0], namaAnggota: pts[1]||pts[0], bulan: document.getElementById('edit-bln-setoran').value, tahun: document.getElementById('edit-thn-setoran').value, jumlah: document.getElementById('edit-jml-setoran').value };
+                act = "editSetoran"; btn = "btn-edit-setoran"; mod = "modal-edit-setoran";
+            } else {
+                pay = { idTransaksi: document.getElementById('edit-id-pengeluaran').value, tanggal: document.getElementById('edit-tgl-pengeluaran').value, keperluan: document.getElementById('edit-kep-pengeluaran').value, jumlah: document.getElementById('edit-jml-pengeluaran').value };
+                act = "editPengeluaran"; btn = "btn-edit-pengeluaran"; mod = "modal-edit-pengeluaran";
+            }
 
-    // Sembunyikan modal
-    modal.classList.add('hidden');
+            const pinInput = document.getElementById('input-pin').value;
+            if(!pinInput) return alert("Buka kunci PIN terlebih dahulu!");
 
-    // Cari tag <form> di dalam modal dan reset isinya
-    const form = modal.querySelector('form');
-    if (form) {
-        form.reset();
-    }
+            const tombol = document.getElementById(btn);
+            tombol.innerText = "Menyimpan...";
+            tombol.disabled = true;
 
-    // Bersihkan semua input tersembunyi (hidden input) jika ada (berguna untuk modal Edit)
-    const hiddenInputs = modal.querySelectorAll('input[type="hidden"]');
-    hiddenInputs.forEach(input => input.value = '');
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: act, pin: pinInput, data: pay })
+                }).then(r => r.json());
 
-    // Bersihkan input PIN jika berada di luar tag <form> namun di dalam modal
-    const pinInput = modal.querySelector('#input-pin');
-    if (pinInput) {
-        pinInput.value = '';
-    }
-}
+                if(res.status === "success") {
+                    alert("Edit transaksi berhasil!");
+                    tutupModalForm(mod);
+                    tarikLaporan(); // Reload
+                } else {
+                    alert("Gagal Edit: " + res.message);
+                }
+            } catch(e) {
+                alert("Kesalahan jaringan.");
+            } finally {
+                tombol.innerText = "Simpan Edit";
+                tombol.disabled = false;
+            }
+        }
 
-// 3. FUNGSI BUKA MODAL EDIT (Logika ID yang aman)
-function bukaModalEdit(index) {
-    const data = dataGlobal[index]; // Asumsi dataGlobal menampung respon JSON Anda
-    
-    // Gunakan nama kolom (header) yang pasti dari Google Sheets Anda. 
-    // Sesuaikan "ID_Transaksi" dengan nama header asli di Spreadsheet Anda.
-    const idTransaksi = data.raw["ID_Transaksi"] || data.raw["ID"]; 
-    
-    if (!idTransaksi) {
-        alert("Gagal memuat data: ID tidak ditemukan pada baris ini.");
-        console.error("Data baris:", data.raw);
-        return;
-    }
-    
-    // Isi data ke dalam form modal edit
-    document.getElementById('edit-id').value = idTransaksi;
-    
-    // Contoh mengisi field lain (sesuaikan dengan ID input Anda)
-    // document.getElementById('edit-nominal').value = data.raw["Nominal"];
-    
-    // Tampilkan modal
-    document.getElementById('modal-edit-transaksi').classList.remove('hidden');
-}
-        setTanggalOtomatis(); muatDashboard(); muatAnggota();
+        async function hapusTransaksi(jenis) {
+            if(!confirm("Yakin ingin menghapus transaksi ini? Data tidak dapat dikembalikan.")) return;
+            const idTrx = jenis === 'setoran' ? document.getElementById('edit-id-setoran').value : document.getElementById('edit-id-pengeluaran').value;
+            const pinInput = document.getElementById('input-pin').value;
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "hapusTransaksi", pin: pinInput, data: { jenis: jenis, idTransaksi: idTrx } })
+                }).then(r => r.json());
+
+                if(res.status === "success") {
+                    alert("Transaksi berhasil dihapus!");
+                    tutupModalForm(jenis === 'setoran' ? 'modal-edit-setoran' : 'modal-edit-pengeluaran');
+                    tarikLaporan(); // Reload
+                } else {
+                    alert("Gagal menghapus: " + res.message);
+                }
+            } catch(e) {
+                alert("Kesalahan jaringan.");
+            }
+        }
+
+        // Buka PIN & Init App
+        function cekPIN() {
+            const pin = document.getElementById('input-pin').value;
+            if (pin === "031391") { // Sesuaikan dengan validasi di backend
+                isBendahara = true;
+                document.getElementById('modal-pin').classList.add('hidden');
+                document.getElementById('area-transaksi').classList.remove('hidden');
+                document.getElementById('indikator-kunci').classList.replace('bg-red-500', 'bg-green-500');
+            } else {
+                alert("PIN Salah! Akses ditolak.");
+            }
+        }
+
+        window.onload = () => {
+            setTanggalOtomatis();
+            pindahHalaman('dashboard');
+        };
     </script>
 </body>
 </html>
+
