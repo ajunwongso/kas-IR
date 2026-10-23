@@ -241,6 +241,8 @@
         let historyDataGlobal = []; 
 
         // Fungsi Cek PIN Bendahara (Validasi via Apps Script)
+     
+        // Fungsi Cek PIN Bendahara (Validasi via Apps Script)
         async function cekPIN() {
             const pinInput = document.getElementById('input-pin').value;
             
@@ -337,9 +339,11 @@
             else if(halaman === 'laporan') { 
                 document.getElementById('judul-halaman').innerText = "REKAP LAPORAN"; 
                 document.getElementById('teks-header').innerText = "Arsip Keuangan"; 
+
                 tarikLaporan(); 
             }
         }
+
 
         function cekAksesAdmin(idModal) {
             if(!isBendahara) { 
