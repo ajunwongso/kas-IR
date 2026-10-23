@@ -28,45 +28,7 @@
             </div>
         </div>
 
-        <!-- HALAMAN 1: DASHBOARD -->
-        <div id="halaman-dashboard" class="p-5 space-y-4 -mt-4 relative z-10">
-            <div id="loading-dashboard" class="flex justify-center py-10"><div class="loader"></div></div>
-            <div id="konten-dashboard" class="hidden space-y-4">
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-center">
-                    <p class="text-slate-500 text-xs font-bold">Saldo Kas Saat Ini</p>
-                    <h2 class="text-4xl font-black text-[#1d4ed8] mt-1 drop-shadow-sm" id="ui-saldo">Rp 0</h2>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                        <p class="text-slate-400 text-[9px] font-black uppercase tracking-wider">Pemasukan Bulan Ini</p>
-                        <p class="text-lg font-black text-[#16a34a] mt-1 drop-shadow-sm" id="ui-pemasukan">Rp 0</p>
-                    </div>
-                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                        <p class="text-slate-400 text-[9px] font-black uppercase tracking-wider">Pengeluaran Bulan Ini</p>
-                        <p class="text-lg font-black text-[#dc2626] mt-1 drop-shadow-sm" id="ui-pengeluaran">Rp 0</p>
-                    </div>
-                </div>
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                    <div class="flex justify-between items-end mb-3">
-                        <span class="text-slate-700 font-bold text-sm">Progress Iuran Anggota</span>
-                        <div class="text-right flex items-center gap-1">
-                            <span class="font-black text-slate-900" id="ui-progress-text">0/0</span>
-                            <span class="text-[10px] text-blue-600 font-bold" id="ui-persentase">(0%)</span>
-                        </div>
-                    </div>
-                    <div class="w-full bg-slate-100 rounded-full h-2.5">
-                        <div class="bg-[#2563eb] h-2.5 rounded-full transition-all duration-1000 shadow-sm" id="ui-progress-bar" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                    <div class="flex justify-between items-end border-b border-gray-50 pb-2 mb-3">
-                        <span class="text-slate-700 font-bold text-sm">Transaksi Terakhir</span>
-                        <button onclick="pindahHalaman('laporan')" class="text-[9px] text-blue-600 font-black bg-blue-50 px-3 py-1.5 rounded-lg active:scale-95 transition">LIHAT SEMUA</button>
-                    </div>
-                    <div id="dashboard-riwayat" class="space-y-1"></div>
-                </div>
-            </div>
-        </div>
+     
 
         <!-- HALAMAN 2: ANGGOTA -->
         <div id="halaman-anggota" class="p-5 hidden -mt-2 relative z-10">
@@ -224,7 +186,7 @@
 
         <!-- BOTTOM NAVIGATION -->
         <div class="fixed bottom-0 w-full max-w-md bg-white border-t border-slate-100 flex justify-around px-2 py-3 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-50 rounded-t-3xl">
-            <button onclick="pindahHalaman('dashboard')" id="nav-dashboard" class="flex flex-col items-center w-16 text-[#2563eb] transition"><svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg><span class="text-[9px] font-black">Dashboard</span></button>
+       
             <button onclick="pindahHalaman('anggota')" id="nav-anggota" class="flex flex-col items-center w-16 text-slate-400 hover:text-[#2563eb] transition"><svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg><span class="text-[9px] font-black">Anggota</span></button>
             <button onclick="pindahHalaman('kas')" id="nav-kas" class="flex flex-col items-center w-16 text-slate-400 hover:text-[#2563eb] transition relative">
                 <div id="indikator-kunci" class="absolute -top-1 right-3 bg-red-500 rounded-full w-2.5 h-2.5 border-2 border-white"></div>
@@ -314,35 +276,35 @@
             return "Rp " + Number(angka).toLocaleString('id-ID'); 
         }
 
-        function pindahHalaman(halaman) {
-            ['dashboard', 'anggota', 'kas', 'laporan'].forEach(h => {
-                document.getElementById('halaman-' + h).classList.add('hidden');
-                document.getElementById('nav-' + h).classList.replace('text-[#2563eb]', 'text-slate-400');
-            });
-            document.getElementById('halaman-' + halaman).classList.remove('hidden');
-            document.getElementById('nav-' + halaman).classList.replace('text-slate-400', 'text-[#2563eb]');
+        
 
-            if(halaman === 'dashboard') { 
-                document.getElementById('judul-halaman').innerHTML = "KAS Sertifikasi<br><span class='text-sm font-normal'>SMP IT Insan Robbani</span>"; 
-                document.getElementById('teks-header').innerText = "Memuat periode..."; 
-                muatDashboard(); 
-            }
-            else if(halaman === 'anggota') { 
-                document.getElementById('judul-halaman').innerText = "DATA ANGGOTA"; 
-                document.getElementById('teks-header').innerText = "Rekap Iuran Bulanan"; 
-                muatAnggota(); 
-            }
-            else if(halaman === 'kas') { 
-                document.getElementById('judul-halaman').innerText = "MANAJEMEN KAS"; 
-                document.getElementById('teks-header').innerText = "Input Transaksi"; 
-            }
-            else if(halaman === 'laporan') { 
-                document.getElementById('judul-halaman').innerText = "REKAP LAPORAN"; 
-                document.getElementById('teks-header').innerText = "Arsip Keuangan"; 
+          function pindahHalaman(halaman) {
+    // Hapus 'dashboard' dari daftar array di bawah ini
+    ['anggota', 'kas', 'laporan'].forEach(h => {
+        document.getElementById('halaman-' + h).classList.add('hidden');
+        document.getElementById('nav-' + h).classList.replace('text-[#2563eb]', 'text-slate-400');
+    });
+    document.getElementById('halaman-' + halaman).classList.remove('hidden');
+    document.getElementById('nav-' + halaman).classList.replace('text-slate-400', 'text-[#2563eb]');
 
-                tarikLaporan(); 
-            }
-        }
+    // Hapus blok kondisi 'if(halaman === 'dashboard')' miliki dashboard, biarkan sisanya:
+    if(halaman === 'anggota') { 
+        document.getElementById('judul-halaman').innerText = "DATA ANGGOTA"; 
+        document.getElementById('teks-header').innerText = "Rekap Iuran Bulanan"; 
+        muatAnggota(); 
+    }
+    else if(halaman === 'kas') { 
+        document.getElementById('judul-halaman').innerText = "MANAJEMEN KAS"; 
+        document.getElementById('teks-header').innerText = "Input Transaksi"; 
+    }
+    else if(halaman === 'laporan') { 
+        document.getElementById('judul-halaman').innerText = "REKAP LAPORAN"; 
+        document.getElementById('teks-header').innerText = "Arsip Keuangan"; 
+        tarikLaporan(); 
+    }
+}
+  
+      
 
 
         function cekAksesAdmin(idModal) {
@@ -736,11 +698,13 @@
             }
         }
         // Panggil inisialisasi awal
-        window.addEventListener("DOMContentLoaded", () => {
-            setTanggalOtomatis();
-            muatAnggota(); 
-            pindahHalaman('dashboard'); 
-        });    
+window.addEventListener("DOMContentLoaded", () => {
+    setTanggalOtomatis();
+    muatAnggota(); 
+    pindahHalaman('laporan'); // <-- Ubah dari 'dashboard' menjadi 'laporan'
+});
+ 
+       
     </script>
 </body>
 </html>
