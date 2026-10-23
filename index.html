@@ -438,8 +438,12 @@
                             let totalBayar = 0; 
                             let daftarBulan = [];
                             
+                            // PERBAIKAN: Deteksi ID pada kolom ID Anggota maupun Nama Anggota
                             dataSetoran.forEach(s => { 
-                                if(String(s["ID Anggota"]).trim() === String(id).trim()) { 
+                                let sId = String(s["ID Anggota"] || "").trim();
+                                let sNama = String(s["Nama Anggota"] || s["Nama"] || s["nama"] || "").trim();
+                                
+                                if(sId === String(id).trim() || sNama.includes(String(id).trim())) { 
                                     totalBayar += Number(s["Jumlah"] || 0); 
                                     if(s["Bulan"]) daftarBulan.push(s["Bulan"]); 
                                 } 
@@ -463,7 +467,6 @@
                 document.getElementById('loading-anggota').classList.add('hidden'); 
             }
         }
-
         async function simpanAnggota() {
             const pinInput = document.getElementById('input-pin').value;
             const id = document.getElementById('form-id-anggota').value;
@@ -627,12 +630,18 @@
                 btn = document.getElementById('btn-simpan-setoran');
                 payload.action = "tambahSetoran";
                 payload.data.tanggal = document.getElementById('form-tgl-masuk').value;
-                payload.data.nama = document.getElementById('form-nama-masuk').value;
+                
+                // PERBAIKAN: Memisahkan ID dan Nama dengan benar sebelum dikirim ke Google Sheets
+                let valNama = document.getElementById('form-nama-masuk').value;
+                let parts = valNama.split(" - ");
+                payload.data.idAnggota = parts[0];
+                payload.data.nama = parts.length > 1 ? parts[1] : valNama;
+                
                 payload.data.bulan = document.getElementById('form-bln-masuk').value;
                 payload.data.tahun = document.getElementById('form-thn-masuk').value;
                 payload.data.jumlah = document.getElementById('form-jml-masuk').value;
                 
-                if(!payload.data.tanggal || !payload.data.nama || !payload.data.jumlah) return alert("Lengkapi data!");
+                if(!payload.data.tanggal || !valNama || !payload.data.jumlah) return alert("Lengkapi data!");
             } else {
                 btn = document.getElementById('btn-simpan-pengeluaran');
                 payload.action = "tambahPengeluaran";
@@ -682,7 +691,13 @@
                 payload.action = "editSetoran";
                 payload.data.id = document.getElementById('edit-id-setoran').value;
                 payload.data.tanggal = document.getElementById('edit-tgl-setoran').value;
-                payload.data.nama = document.getElementById('edit-nama-setoran').value;
+                
+                // PERBAIKAN: Memisahkan ID dan Nama dengan benar saat diedit
+                let valNama = document.getElementById('edit-nama-setoran').value;
+                let parts = valNama.split(" - ");
+                payload.data.idAnggota = parts[0];
+                payload.data.nama = parts.length > 1 ? parts[1] : valNama;
+                
                 payload.data.bulan = document.getElementById('edit-bln-setoran').value;
                 payload.data.tahun = document.getElementById('edit-thn-setoran').value;
                 payload.data.jumlah = document.getElementById('edit-jml-setoran').value;
@@ -716,37 +731,6 @@
                 btn.disabled = false; 
             }
         }
-
-        async function hapusTransaksi(tipe) {
-            const pinInput = document.getElementById('input-pin').value;
-            if(!isBendahara || !pinInput) return alert("Akses Ditolak! Harap masukkan PIN Bendahara.");
-            if (!confirm(`Apakah Anda yakin ingin menghapus data ${tipe} ini?`)) return;
-
-            let payload = { pin: pinInput, action: "", data: {} };
-            if (tipe === 'setoran') {
-                payload.action = "hapusSetoran";
-                payload.data.id = document.getElementById('edit-id-setoran').value;
-            } else {
-                payload.action = "hapusPengeluaran";
-                payload.data.id = document.getElementById('edit-id-pengeluaran').value;
-            }
-
-            try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }).then(r=>r.json());
-                if(res.status === "success") {
-                    alert("Data Berhasil Dihapus!");
-                    if(tipe === 'setoran') tutupModalForm('modal-edit-setoran'); 
-                    else tutupModalForm('modal-edit-pengeluaran');
-                    tarikLaporan();
-                    muatDashboard();
-                } else {
-                    alert("Gagal menghapus: " + res.message);
-                }
-            } catch(e) { 
-                alert("Error jaringan/server!"); 
-            }
-        }
-
         // Panggil inisialisasi awal
         window.addEventListener("DOMContentLoaded", () => {
             setTanggalOtomatis();
