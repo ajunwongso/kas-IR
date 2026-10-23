@@ -21,9 +21,7 @@
         
         <!-- HEADER KUSTOM -->
         <div class="rounded-b-[35px] shadow-sm sticky top-0 z-20 overflow-hidden relative bg-[#f0f9ff]">
-            <!-- Ganti tulisan URL_GAMBAR_ANDA_DISINI dengan link gambar atau data base64 Anda -->
             <div class="absolute inset-0" style="background-image: url('URL_GAMBAR_ANDA_DISINI'); background-size: cover; background-position: center; opacity: 0.1;"></div>
-            
             <div class="relative z-10 w-full pl-[35%] pr-5 pt-7 pb-8">
                 <h1 class="text-[25px] font-black tracking-tight text-[#1e3a8a] leading-tight" style="text-shadow: 0 0 10px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.8);" id="judul-halaman">KAS Sertifikasi</h1>
                 <p class="text-blue-700 text-[10px] font-bold mt-1.5" style="text-shadow: 0 0 5px rgba(255,255,255,0.9);" id="teks-header">Memuat data...</p>
@@ -242,20 +240,46 @@
         let isBendahara = false; 
         let historyDataGlobal = []; 
 
-        // Fungsi Cek PIN Bendahara
-        function cekPIN() {
+        // Fungsi Cek PIN Bendahara (Validasi via Apps Script)
+        async function cekPIN() {
             const pinInput = document.getElementById('input-pin').value;
-            // GANTI '123456' dengan PIN rahasia bendahara yang sesungguhnya
-            const PIN_BENDAHARA = '123456'; 
+            
+            if (!pinInput) {
+                return alert("Harap masukkan PIN!");
+            }
 
-            if (pinInput === PIN_BENDAHARA) {
-                isBendahara = true;
-                document.getElementById('modal-pin').classList.add('hidden');
-                document.getElementById('area-transaksi').classList.remove('hidden');
-                document.getElementById('indikator-kunci').classList.replace('bg-red-500', 'bg-green-500');
-            } else {
-                alert('PIN Salah! Anda tidak dapat mengakses menu ini.');
+            const btn = document.querySelector('#modal-pin button');
+            const originalText = btn.innerText;
+            btn.innerText = "Memeriksa...";
+            btn.disabled = true;
+
+            try {
+                // Kirim request ke Google Apps Script
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: "cekPIN",
+                        pin: pinInput
+                    })
+                });
+                
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    isBendahara = true;
+                    document.getElementById('modal-pin').classList.add('hidden');
+                    document.getElementById('area-transaksi').classList.remove('hidden');
+                    document.getElementById('indikator-kunci').classList.replace('bg-red-500', 'bg-green-500');
+                } else {
+                    alert('PIN Salah! Akses ditolak.');
+                    document.getElementById('input-pin').value = '';
+                }
+            } catch (error) {
+                alert("Terjadi kesalahan! Pastikan Google Apps Script Anda sudah diperbarui dan di-Deploy ulang.");
                 document.getElementById('input-pin').value = '';
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
             }
         }
 
@@ -329,9 +353,6 @@
         function bukaModalForm(id) { document.getElementById(id).classList.remove('hidden'); }
         function tutupModalForm(id) { document.getElementById(id).classList.add('hidden'); }
 
-        // ==========================================
-        // FUNGSI DASHBOARD & ANGGOTA
-        // ==========================================
         async function muatDashboard() {
             document.getElementById('loading-dashboard').classList.remove('hidden'); 
             document.getElementById('konten-dashboard').classList.add('hidden');
@@ -387,49 +408,7 @@
                 document.getElementById('konten-dashboard').classList.remove('hidden'); 
             }
         }
-// Fungsi Cek PIN Bendahara (Validasi via Apps Script)
-async function cekPIN() {
-    const pinInput = document.getElementById('input-pin').value;
-    
-    if (!pinInput) {
-        return alert("Harap masukkan PIN!");
-    }
 
-    const btn = document.querySelector('#modal-pin button');
-    const originalText = btn.innerText;
-    btn.innerText = "Memeriksa...";
-    btn.disabled = true;
-
-    try {
-        // Kirim request ke Google Apps Script
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: "cekPIN",
-                pin: pinInput
-            })
-        });
-        
-        const result = await response.json();
-
-        if (result.status === "success") {
-            isBendahara = true;
-            // Buka area transaksi
-            document.getElementById('modal-pin').classList.add('hidden');
-            document.getElementById('area-transaksi').classList.remove('hidden');
-            document.getElementById('indikator-kunci').classList.replace('bg-red-500', 'bg-green-500');
-        } else {
-            alert('PIN Salah! Akses ditolak.');
-            document.getElementById('input-pin').value = '';
-        }
-    } catch (error) {
-        alert("Terjadi kesalahan jaringan atau server gagal merespons.");
-    } finally {
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }
-}
-		
         async function muatAnggota() {
             const listAnggota = document.getElementById('list-anggota'), 
                   selectAnggota = document.getElementById('form-nama-masuk'), 
@@ -545,9 +524,6 @@ async function cekPIN() {
             }
         }
 
-        // ==========================================
-        // FUNGSI LAPORAN & EDIT
-        // ==========================================
         async function tarikLaporan() {
             const bln = document.getElementById('filter-bln').value;
             const thn = document.getElementById('filter-thn').value;
@@ -774,7 +750,7 @@ async function cekPIN() {
         // Panggil inisialisasi awal
         window.addEventListener("DOMContentLoaded", () => {
             setTanggalOtomatis();
-            muatAnggota(); // Menarik data untuk mengisi Option Value di Select
+            muatAnggota(); 
             pindahHalaman('dashboard'); 
         });    
     </script>
